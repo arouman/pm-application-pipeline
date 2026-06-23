@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- rendered by setup.sh: __REPO__ __HOME__ __NODE__ tokens are substituted at install time -->
+<!--
+  launchd job that runs the application supervisor every 30 minutes.
+  This is the EXTERNAL scheduler that makes overnight/unattended runs survive
+  Anthropic's 5-hour and weekly usage windows: run-batch.sh writes a
+  `.paused-until` file when rate-limited and exits; on each 30-min tick this job
+  re-runs run-batch.sh, which no-ops until the window reopens, then resumes at
+  the next pending queue item. Nothing is lost — state lives in queue.json.
+
+  ACTIVATION IS A DELIBERATE STEP (it schedules a recurring background job):
+    sed -e 's|__REPO__|/abs/path/to/repo|g' -e 's|__HOME__|/Users/yourname|g' \
+        scripts/com.robstout.applications.batch.plist.template \
+        > ~/Library/LaunchAgents/local.jobpipeline.batch.plist
+    launchctl load  ~/Library/LaunchAgents/local.jobpipeline.batch.plist
+    launchctl unload ~/Library/LaunchAgents/local.jobpipeline.batch.plist   # to stop
+  Adjust PATH below if `claude` lives elsewhere (run `which claude`).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.jobpipeline.batch</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__REPO__/scripts/run-batch.sh</string>
+    <string>--recover</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__HOME__/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>MODEL</key><string>sonnet</string>
+  </dict>
+  <key>StartInterval</key><integer>1800</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>__REPO__/applied/_queue/logs/launchd.out.log</string>
+  <key>StandardErrorPath</key><string>__REPO__/applied/_queue/logs/launchd.err.log</string>
+</dict>
+</plist>

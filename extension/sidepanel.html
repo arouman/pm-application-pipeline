@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rob's Job Scout</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="panel-header">
+    <div class="header-top">
+      <h1 class="panel-title">Job Scout</h1>
+      <button id="btn-refresh" class="btn-icon" title="Refresh roles" aria-label="Refresh">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M13.65 2.35A8 8 0 1 0 15 8h-1.5A6.5 6.5 0 1 1 8 1.5a6.45 6.45 0 0 1 4.59 1.91L10 6h5V1l-1.35 1.35Z"
+                fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Match count + cache timestamp -->
+    <p id="status-line" class="status-line" aria-live="polite"></p>
+
+    <!-- Filters row -->
+    <div class="filters-row">
+      <input
+        id="filter-text"
+        class="filter-input"
+        type="search"
+        placeholder="Filter by company or title…"
+        aria-label="Filter roles"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <select id="filter-company" class="filter-select" aria-label="Filter by company">
+        <option value="">All companies</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- ── Main content area ───────────────────────────────────── -->
+  <main id="panel-main" class="panel-main">
+
+    <!-- Loading skeleton -->
+    <div id="state-loading" class="state-view" hidden>
+      <div class="skeleton-group">
+        <div class="skeleton skeleton-label"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card"></div>
+      </div>
+    </div>
+
+    <!-- Offline / bridge unreachable -->
+    <div id="state-offline" class="state-view" hidden>
+      <div class="empty-state">
+        <svg class="empty-icon" width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M20 12v10M20 27v1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <h2 class="empty-title">Bridge offline</h2>
+        <p class="empty-body">
+          Start the local bridge, then refresh.
+        </p>
+        <pre class="code-hint">node bridge/server.js</pre>
+        <button id="btn-retry" class="btn-primary">Refresh</button>
+      </div>
+    </div>
+
+    <!-- Empty results (bridge responded but no roles matched) -->
+    <div id="state-empty" class="state-view" hidden>
+      <div class="empty-state">
+        <svg class="empty-icon" width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <circle cx="20" cy="20" r="18" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M14 20h12M20 14v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <h2 class="empty-title">No matches</h2>
+        <p class="empty-body">No open roles matched your target titles right now.</p>
+      </div>
+    </div>
+
+    <!-- Role list — populated by JS -->
+    <div id="state-results" class="state-view" hidden>
+      <div id="roles-container"></div>
+    </div>
+
+  </main>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

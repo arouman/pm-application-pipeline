@@ -1,0 +1,27 @@
+{
+  "_note": "Copy this file to private/applicant-profile.json and replace every placeholder with your real values. This file is gitignored and stays local — it is used ONLY to fill application form fields. EEO fields and anything beyond what your resume already states must NEVER appear in a resume or cover letter. Leave any field blank ('') if you prefer not to answer.",
+
+  "identity": {
+    "fullName": "Jane Doe",
+    "email": "jane@example.com",
+    "emailNote": "Professional address used on all applications",
+    "phone": "555-555-0100",
+    "location": "City, ST",
+    "locationForApplications": "City, ST (open to relocation)",
+    "openToRelocation": true,
+    "website": "https://janedoe.com",
+    "linkedin": "https://linkedin.com/in/janedoe",
+    "github": "https://github.com/janedoe"
+  },
+
+  "eeo": {
+    "_note": "EEO fields are strictly optional self-identification for employer diversity reporting. They are NEVER written into a resume, cover letter, or any document the hiring team reads. Fill in, leave blank (''), or set to 'Prefer not to say' — your choice entirely.",
+    "gender": "Prefer not to say",
+    "transgender": "Prefer not to say",
+    "sexualOrientation": "Prefer not to say",
+    "race": "Prefer not to say",
+    "veteranStatus": "I am not a protected veteran",
+    "disabilityStatus": "I do not have a disability",
+    "disabilityNote": ""
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Rob's Job Scout",
+  "version": "0.1.0",
+  "description": "Ranked open roles at Rob's target companies, pulled live from the local bridge.",
+
+  "permissions": ["sidePanel", "storage"],
+
+  "host_permissions": [
+    "http://localhost:8787/*",
+    "https://boards.greenhouse.io/*",
+    "https://job-boards.greenhouse.io/*",
+    "https://jobs.lever.co/*",
+    "https://jobs.ashbyhq.com/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "action": {
+    "default_title": "Rob's Job Scout"
+  },
+
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

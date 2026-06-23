@@ -1,0 +1,28 @@
+# Personal / PII — never commit
+private/
+
+# Dossier intake drop-folder — your own documents stay local (README is tracked)
+intake-docs/*
+!intake-docs/README.md
+
+# Application output files — generated; too large and personal to track
+applied/
+
+# Dependencies and build artifacts
+node_modules/
+__pycache__/
+*.pyc
+*.log
+*.lock
+
+# macOS
+.DS_Store
+
+# Temporary backup files (created by the pipeline scripts)
+*.bak*
+
+# Claude local settings (machine-specific)
+.claude/settings.local.json
+
+# Playwright browser cache (downloaded on demand)
+bridge/.playwright-mcp/

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- rendered by setup.sh: __REPO__ __HOME__ __NODE__ tokens are substituted at install time -->
+<!--
+  launchd LaunchAgent: always-on bridge server at http://127.0.0.1:8787
+
+  Starts node bridge/server.js at login and keeps it alive automatically.
+  Bookmark: http://127.0.0.1:8787 — no terminal required.
+
+  Install (one-time):
+    sed -e 's|__REPO__|/abs/path/to/repo|g' \
+        -e 's|__HOME__|/Users/yourname|g' \
+        -e 's|__NODE__|/opt/homebrew/bin/node|g' \
+        bridge/com.robstout.applications.bridge.plist.template \
+        > ~/Library/LaunchAgents/local.jobpipeline.bridge.plist
+    launchctl load ~/Library/LaunchAgents/local.jobpipeline.bridge.plist
+
+  Uninstall:
+    launchctl unload ~/Library/LaunchAgents/local.jobpipeline.bridge.plist
+    rm ~/Library/LaunchAgents/local.jobpipeline.bridge.plist
+
+  Check status:
+    launchctl list | grep bridge
+    curl http://127.0.0.1:8787/health
+
+  Logs:
+    tail -f __REPO__/applied/_queue/bridge-launchd.log
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>local.jobpipeline.bridge</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>__NODE__</string>
+    <string>__REPO__/bridge/server.js</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>HOME</key>
+    <string>__HOME__</string>
+  </dict>
+
+  <key>WorkingDirectory</key>
+  <string>__REPO__</string>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>__REPO__/applied/_queue/bridge-launchd.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>__REPO__/applied/_queue/bridge-launchd.log</string>
+
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+</dict>
+</plist>

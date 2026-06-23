@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Application Pipeline</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #f5f5f7;
+      --surface:     #ffffff;
+      --border:      #d2d2d7;
+      --text:        #1d1d1f;
+      --text-2:      #6e6e73;
+      --text-3:      #8e8e93;          /* quietest label tier (waiting/archive) */
+      --accent:      #0071e3;
+      --accent-h:    #0077ed;
+      --green:       #2da44e;
+      --yellow:      #b08800;
+      --red:         #cf222e;
+
+      /* ── Zone accents — urgency encoded as colour temperature ──────────────
+         Reasoned in OKLCH: ACT NOW is the warmest, highest-chroma rail (orange,
+         ~70° hue) so it physically pulls the eye first; IN PLAY is a confident
+         cool blue (~250°) that reads "momentum, in motion" without alarm;
+         WAITING is a near-grey low-chroma slate; ARCHIVE is pure neutral. Each
+         rail is paired with a position + an always-present text label, so colour
+         is never the sole signal. */
+      --zone-act:      #c2410c;   /* eyebrow + 4px rail for ACT NOW */
+      --zone-act-bg:   #fff7f3;   /* faint warm wash behind the act-now group   */
+      --zone-act-edge: #fbe2d3;   /* hairline that closes the warm common-region */
+      --zone-play:     #1d4ed8;   /* eyebrow + rail for IN PLAY                  */
+      --zone-wait:     #6e6e73;   /* eyebrow for WAITING — neutral, recedes      */
+      --zone-arch:     #8e8e93;   /* eyebrow for ARCHIVE — quietest             */
+
+      --radius:      10px;
+      --shadow:      0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+      --shadow-act:  0 1px 4px rgba(120,53,15,.10), 0 6px 20px rgba(120,53,15,.06);
+      --focus:       0 0 0 3px rgba(0,113,227,.40);   /* keyboard ring */
+      font-size:     15px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+    }
+
+    /* One global keyboard ring — every interactive element, no exceptions. */
+    a:focus-visible, button:focus-visible, select:focus-visible,
+    textarea:focus-visible, input:focus-visible, summary:focus-visible {
+      outline: none;
+      box-shadow: var(--focus);
+      border-radius: 6px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                   "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 40px 24px 80px;
+      -webkit-font-smoothing: antialiased;
+      /* Tabular figures everywhere — dates and Match-% columns must not jitter. */
+      font-variant-numeric: tabular-nums lining-nums;
+    }
+
+    .page { max-width: 960px; margin: 0 auto; }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -.4px;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      color: var(--text-2);
+      font-size: 13px;
+      margin-bottom: 32px;
+      max-width: 60ch;
+    }
+
+    /* ── Lifecycle zone header — the eyebrow that anchors each urgency group ──
+       Uppercase, tracked, small. Hierarchy comes from weight + the coloured rail
+       + a live count, never from shouting. Sticky so the zone stays labelled as
+       Rob scrolls a long ledger. */
+    .zone { margin-top: 8px; }
+    .zone + .zone { margin-top: 28px; }
+    .zone-head {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 8px 0 10px;
+      margin-bottom: 4px;
+      background: linear-gradient(var(--surface) 78%, rgba(255,255,255,0));
+    }
+    .zone-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .zone-eyebrow::before {
+      content: "";
+      width: 3px;
+      height: 13px;
+      border-radius: 2px;
+      background: currentColor;
+    }
+    .zone-act   .zone-eyebrow { color: var(--zone-act); }
+    .zone-play  .zone-eyebrow { color: var(--zone-play); }
+    .zone-wait  .zone-eyebrow { color: var(--zone-wait); }
+    .zone-count {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-3);
+      font-variant-numeric: tabular-nums;
+    }
+    .zone-sub {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-left: auto;
+    }
+
+    .job-link {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+      text-underline-offset: 2px;
+    }
+    .job-link:hover { color: var(--accent, #4c4dff); text-decoration-color: currentColor; }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* The two action-dense sections (Intake + Review Queue) carry the most
+       weight: a warm-tinted shadow and a hairline-thin warm top edge so the
+       "act now" half of the page is felt before it's read. */
+    section.section-act {
+      box-shadow: var(--shadow-act);
+      border-top: 2px solid var(--zone-act);
+      border-radius: var(--radius);
+    }
+
+    section h2 {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--text-2);
+      margin-bottom: 16px;
+    }
+    section.section-act h2 { color: var(--zone-act); }
+    /* Live count chip that rides alongside a section title. */
+    .h2-count {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .3px;
+      color: var(--text-2);
+      background: #f0f0f5;
+      border-radius: 980px;
+      padding: 1px 9px;
+      font-variant-numeric: tabular-nums;
+    }
+    section.section-act .h2-count { background: var(--zone-act-bg); color: var(--zone-act); }
+
+    /* Quiet, collapsible Controls (engine plumbing — setup, not daily triage). */
+    details.controls-disclosure { margin-bottom: 24px; }
+    details.controls-disclosure > summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--text-3);
+      padding: 6px 2px;
+      user-select: none;
+    }
+    details.controls-disclosure > summary::-webkit-details-marker { display: none; }
+    .disclosure-caret {
+      width: 14px; height: 14px;
+      transition: transform .2s ease;
+      flex-shrink: 0;
+    }
+    details[open] .disclosure-caret { transform: rotate(90deg); }
+    details.controls-disclosure > summary:hover { color: var(--text-2); }
+
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font: inherit;
+      font-size: 14px;
+      resize: vertical;
+      outline: none;
+      transition: border-color .15s;
+    }
+    textarea:focus { border-color: var(--accent); }
+
+    .row { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background .15s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-h); }
+    .btn-primary:disabled { opacity: .5; cursor: default; }
+
+    .btn-small {
+      background: #f0f0f5;
+      color: var(--text);
+      padding: 4px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+    .btn-small:hover { background: #e5e5ea; }
+    .btn-pass { color: #8a3b4d; }
+    .btn-pass:hover { background: #f6e4e8; }
+    .pill-passed { background: #f6e4e8; color: #8a3b4d; }
+
+    /* Results list under the textarea */
+    .results { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .result-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      padding: 8px 10px;
+      border-radius: 7px;
+      background: #f9f9fb;
+      border: 1px solid var(--border);
+    }
+    .badge {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .badge-ok    { background: #dcfce7; color: var(--green); }
+    .badge-warn  { background: #fef9c3; color: var(--yellow); }
+    .badge-err   { background: #fee2e2; color: var(--red); }
+    .result-url  { color: var(--text-2); font-size: 12px; word-break: break-all; }
+    .result-msg  { color: var(--text); }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      line-height: 1.3;
+    }
+    th {
+      text-align: left;
+      padding: 6px 10px;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--text-3);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    th.num, td.num { text-align: right; font-variant-numeric: tabular-nums lining-nums; }
+    th.date, td.date { font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #f0f0f5;
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+
+    /* Sticky header inside a scrollable ledger zone, so columns stay labelled. */
+    .ledger-scroll table thead th {
+      position: sticky;
+      top: 44px;            /* clears the sticky zone-head above it */
+      background: var(--surface);
+      z-index: 4;
+    }
+
+    /* Archive rows ride muted: lower contrast, smaller-feeling — present, ignorable. */
+    .zone-arch table { font-size: 12.5px; }
+    .zone-arch td { color: var(--text-3); padding-top: 7px; padding-bottom: 7px; }
+    .zone-arch .job-link { color: var(--text-3); }
+
+    /* Match-% read as a quick signal: a small inline meter behind the number. */
+    .matchcell { display: inline-flex; align-items: center; gap: 7px; justify-content: flex-end; }
+    .matchnum { font-variant-numeric: tabular-nums lining-nums; min-width: 34px; text-align: right; }
+    .matchbar {
+      width: 34px; height: 4px; border-radius: 2px;
+      background: #ececf0; overflow: hidden; flex-shrink: 0;
+    }
+    .matchbar > i { display: block; height: 100%; border-radius: 2px; }
+    .matchbar.hi  > i { background: var(--green); }
+    .matchbar.mid > i { background: var(--yellow); }
+    .matchbar.lo  > i { background: #c0c0c8; }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .1px;
+      white-space: nowrap;
+    }
+    /* Urgency gradient. ACT NOW = warm + saturated (built/queued/error/new).
+       IN PLAY = confident cool blues + a "win" green for offer/accepted.
+       WAITING = low-chroma slate. ARCHIVE = near-neutral, deliberately faded.
+       Every pill still carries its text label, so colour is reinforcement only. */
+
+    /* ── ACT NOW (warm, prominent) ── */
+    .pill-built      { background: #ffedd5; color: #9a3412; }   /* ready to apply — warmest */
+    .pill-queued     { background: #fff1e6; color: #b45309; }
+    .pill-error      { background: #fee2e2; color: #991b1b; }
+    .pill-new        { background: #ffedd5; color: #9a3412; }
+
+    /* ── IN-FLIGHT (informational, "happening now") ── */
+    .pill-pending    { background: #fef3c7; color: #92400e; }
+    .pill-building   { background: #e0f2fe; color: #075985; }
+
+    /* ── IN PLAY (confident, momentum) ── */
+    .pill-screener   { background: #e0edff; color: #1d4ed8; }
+    .pill-interview  { background: #dbe7ff; color: #1e40af; }
+    .pill-offer      { background: #dcfce7; color: #15803d; }   /* win state */
+    .pill-accepted   { background: #cdf3da; color: #166534; }   /* win state, fuller */
+
+    /* ── WAITING (low-chroma, passive) ── */
+    .pill-submitted  { background: #eef0f4; color: #4b5563; }
+
+    /* ── ARCHIVE (near-neutral, faded) ── */
+    .pill-rejected   { background: #f4f4f6; color: #9ca0a8; }
+    .pill-no-response{ background: #f4f4f6; color: #9ca0a8; }
+    .pill-withdrew   { background: #f4f4f6; color: #9ca0a8; }
+    .pill-skipped    { background: #f4f4f6; color: #9ca0a8; }
+    /* expired: same muted archive family but a faint warm-grey tint (vs. the
+       cool-neutral of rejected) to hint "this posting closed" not "you were rejected". */
+    .pill-expired    { background: #f5f0ee; color: #a09590; }
+
+    /* ── Pre-build / misc ── */
+    .pill-queued.pill-prebuild,
+    .pill-tracked    { background: #f3f4f6; color: #4b5563; }
+
+    /* ── Decision inbox cards ─────────────────────────────────────────── */
+    .inbox { display: flex; flex-direction: column; gap: 10px; }
+    .card {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 14px; border: 1px solid var(--border); border-radius: 10px;
+      background: #fbfbfd;
+    }
+    .fit {
+      flex-shrink: 0; width: 54px; height: 54px; border-radius: 10px;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; font-weight: 700; font-size: 16px; line-height: 1;
+    }
+    .fit small { font-size: 9px; font-weight: 600; opacity: .65; margin-top: 3px; letter-spacing: .5px; }
+    .fit-hi  { background: #dcfce7; color: #166534; }
+    .fit-mid { background: #fef9c3; color: #854d0e; }
+    .fit-lo  { background: #f3f4f6; color: #6b7280; }
+    .card-body { flex: 1; min-width: 0; }
+    .card-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+    .card-co { color: var(--text-2); font-weight: 500; }
+    .card-summary { font-size: 13px; color: var(--text); margin: 6px 0; line-height: 1.45; }
+    .card-meta { font-size: 11px; color: var(--text-2); display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
+    .card-gap { color: #92400e; }
+    .card-trap { color: var(--red); font-weight: 600; font-size: 12px; margin-top: 4px; }
+    .card-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-build { background: var(--green); color: #fff; padding: 6px 20px; }
+    .btn-build:hover { background: #218b41; }
+    .btn-build:disabled { opacity: .6; cursor: default; }
+
+    /* Lifecycle outcome dropdown + referral checkbox */
+    .outcome-select {
+      font: inherit; font-size: 12px; padding: 3px 6px; cursor: pointer;
+      border: 1px solid var(--border); border-radius: 6px; background: #fff;
+    }
+    .ref-box { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-2); cursor: pointer; }
+    .subhead { font-size: 12px; font-weight: 600; color: var(--text-2); margin: 18px 0 8px; }
+
+    .empty-msg { color: var(--text-2); font-size: 13px; padding: 12px 0; }
+
+    .refresh-note {
+      font-size: 11px;
+      color: var(--text-2);
+      margin-top: 8px;
+    }
+
+    /* ── Controls section ───────────────────────────────────────────────── */
+    .status-bar {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: #f5f5f7;
+      border: 1px solid var(--border);
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-green  { background: #2da44e; }
+    .dot-grey   { background: #b0b0b8; }
+
+    .control-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid #f0f0f5;
+    }
+    .control-row:last-child { border-bottom: none; }
+
+    .control-left {
+      flex: 1;
+      min-width: 0;
+    }
+    .control-label {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    .control-desc {
+      font-size: 12px;
+      color: var(--text-2);
+      line-height: 1.4;
+    }
+    .control-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn-secondary {
+      background: #f0f0f5;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-secondary:hover { background: #e5e5ea; }
+    .btn-secondary:disabled { opacity: .45; cursor: default; }
+
+    .btn-done {
+      background: #dcfce7;
+      color: var(--green);
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: default;
+    }
+
+    .toggle-btn {
+      position: relative;
+      width: 44px;
+      height: 26px;
+      border-radius: 13px;
+      border: none;
+      cursor: pointer;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+    .toggle-btn::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      transition: left .2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.25);
+    }
+    .toggle-btn.on  { background: var(--green); }
+    .toggle-btn.off { background: #b0b0b8; }
+    .toggle-btn.on::after  { left: 21px; }
+
+    .stage-log-box {
+      margin-top: 12px;
+      background: #f9f9fb;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-family: "SF Mono", "Fira Mono", monospace;
+      white-space: pre-wrap;
+      max-height: 220px;
+      overflow-y: auto;
+      color: var(--text-2);
+      line-height: 1.5;
+      display: none;
+    }
+
+    .link-btn {
+      font-size: 12px;
+      color: var(--accent);
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      font: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .link-btn:hover { color: var(--accent-h); }
+
+    /* ── Auto-fill button (Phase 5) ──────────────────────────────────────────
+       Deliberately distinct from the job-title link so Rob never triggers a
+       browser-driving action by accident when he grabs the title to send to a
+       referral advocate. It lives in its own ACTION cell (its own column), is a
+       filled pill with an icon, and only fires on a direct click of the button
+       itself — no row/title click, no hover trigger. */
+    .autofill-cell { white-space: nowrap; }
+    .btn-autofill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 980px;            /* full Apple-style pill */
+      padding: 5px 13px 5px 11px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: -.1px;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,.12);
+      transition: background .15s, transform .05s;
+    }
+    .btn-autofill:hover { background: var(--accent-h); }
+    .btn-autofill:active { transform: scale(.97); }
+    .btn-autofill:disabled { opacity: .55; cursor: default; box-shadow: none; }
+    .btn-autofill svg { width: 13px; height: 13px; display: block; }
+    /* Inline status that appears to the RIGHT of the button after a click. */
+    .autofill-status {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 11px;
+      color: var(--text-2);
+      vertical-align: middle;
+      max-width: 220px;
+    }
+    .autofill-status.ok  { color: var(--green); }
+    .autofill-status.err { color: var(--red); }
+
+    .first-run-note {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 7px;
+      font-size: 12px;
+      color: #92400e;
+      display: none;
+    }
+
+    /* ── Archive zone: collapsed by default, muted, out of the way ──────────── */
+    details.archive { margin-top: 28px; }
+    details.archive > summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 0;
+      user-select: none;
+    }
+    details.archive > summary::-webkit-details-marker { display: none; }
+    details.archive .zone-eyebrow { color: var(--zone-arch); }
+    details.archive .zone-count { color: var(--text-3); }
+    details.archive .disclosure-caret { color: var(--text-3); }
+    .archive-body { padding-top: 4px; }
+
+    /* Hover/active polish — every interactive control reacts (transform/opacity
+       only, GPU-friendly, no layout reflow). */
+    .btn-small:active,
+    .btn-secondary:active,
+    .btn-build:active,
+    .btn-primary:active { transform: translateY(.5px); }
+    .btn-build { transition: background .15s, transform .05s; }
+    .btn-primary { transition: background .15s, transform .05s; }
+    .btn-secondary { transition: background .15s, transform .05s; }
+    .btn-small { transition: background .15s, transform .05s; }
+    .outcome-select:hover { border-color: #b9b9c0; }
+    .outcome-select:focus-visible { border-color: var(--accent); }
+    .job-link:focus-visible { border-radius: 3px; }
+
+    /* The in-flight "happening now" strip — calm, informational, not an action. */
+    .inflight-note {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--text-2); margin-left: 2px;
+    }
+    .pulse {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #075985; flex-shrink: 0;
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+
+    /* ── Active-build banner — sits above the backlog strip when something is
+       actively building. Calm informational, not alarming (blue-tinted surface,
+       NOT the warm-orange act-now rail). The pulse dot from .pulse is reused. */
+    .build-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #1e40af;
+    }
+    .build-banner .pulse { background: #1d4ed8; }
+    .build-banner-label {
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: #1d4ed8;
+      flex-shrink: 0;
+    }
+    .build-banner-title {
+      flex: 1;
+      font-size: 13px;
+      color: #1e3a8a;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    /* Location chip: small muted inline label next to title/company text. */
+    .loc-chip {
+      font-size: 11px;
+      color: var(--text-3);
+      font-weight: 400;
+      white-space: nowrap;
+      margin-left: 4px;
+    }
+
+    /* Stale-build warning: overrides the calm blue banner with a warm amber tone. */
+    .build-banner.build-stale {
+      background: #fffbeb;
+      border-color: #fcd34d;
+      color: #92400e;
+    }
+    .build-banner.build-stale .pulse { background: #d97706; }
+    .build-banner.build-stale .build-banner-label { color: #b45309; }
+    .build-banner.build-stale .build-banner-title { color: #78350f; }
+
+    /* Elapsed timer chip next to the banner title. */
+    .build-elapsed {
+      font-size: 11px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: #075985;
+      flex-shrink: 0;
+    }
+    .build-banner.build-stale .build-elapsed { color: #b45309; }
+
+    /* Paused banner: quiet notice when the rate-limit pause is active. */
+    .paused-banner {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 14px; margin-bottom: 10px;
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;
+      font-size: 12px; color: #92400e;
+    }
+    .paused-banner-label { font-weight: 600; text-transform: uppercase; letter-spacing: .4px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+ <div class="page">
+
+  <h1>Application Pipeline</h1>
+  <p class="subtitle">Triage what needs action, keep live conversations warm, ignore the dead. Rob always submits — never auto-submitted.</p>
+
+  <!-- ════════════════════════════════════════════════════════════
+       ZONE 1 · ACT NOW  — the two action-dense sections lead the page.
+       ════════════════════════════════════════════════════════════ -->
+
+  <!-- ── REVIEW QUEUE (decision inbox) — highest-priority action ── -->
+  <section class="section-act">
+    <h2>Decide — Build or Pass <span class="h2-count" id="queueCount" hidden></span>
+      <button class="btn-secondary" id="btn-scan" style="margin-left:auto" onclick="searchRoles()"
+              title="Run the watcher now instead of waiting for the next 10-minute scan">Search for roles</button>
+    </h2>
+    <div id="pausedBanner" class="paused-banner" hidden></div>
+    <div id="queueInbox"><p class="empty-msg">Loading…</p></div>
+    <div id="queueBuilding"></div>
+    <p class="refresh-note">New roles the watcher found, strongest fit first. Nothing builds until you click <strong>Build</strong>. Auto-refreshes every 5 seconds.</p>
+  </section>
+
+  <!-- ── INTAKE — capture a URL ──────────────────────────────── -->
+  <section class="section-act">
+    <h2>Add to pipeline</h2>
+    <textarea id="urlInput"
+              placeholder="https://job-boards.greenhouse.io/anthropic/jobs/5127559008&#10;https://jobs.ashbyhq.com/openai/abc123&#10;https://jobs.lever.co/figma/def456"></textarea>
+    <div class="row">
+      <button class="btn-primary" id="addBtn" onclick="addUrls()">Add to pipeline</button>
+    </div>
+    <div class="results" id="results"></div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       ZONES 2–4 · the ledger, split by lifecycle urgency.
+       Built/queued/error surface at top (ACT NOW); then IN PLAY,
+       WAITING, and a collapsed ARCHIVE. Same data, grouped render.
+       ════════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>Ledger — applications &amp; outcomes</h2>
+    <div id="ledgerTable"><p class="empty-msg">Loading…</p></div>
+    <p class="refresh-note">Set each application's outcome and referral flag to learn what's working. Every change is timestamped into the funnel.</p>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════
+       SETUP · engine plumbing — collapsed, lowest weight, last.
+       ════════════════════════════════════════════════════════════ -->
+  <details class="controls-disclosure" id="controls-section">
+    <summary>
+      <svg class="disclosure-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="m9 18 6-6-6-6"/>
+      </svg>
+      Engine &amp; Controls
+      <span class="status-bar" id="status-bar-inline" style="margin:0 0 0 4px;gap:8px">
+        <span class="status-pill">
+          <span class="dot dot-green" id="dot-engine"></span>
+          <span id="label-engine">Engine running</span>
+        </span>
+        <span class="status-pill">
+          <span class="dot dot-grey" id="dot-chrome"></span>
+          <span id="label-chrome">Staging Chrome</span>
+        </span>
+        <span class="status-pill">
+          <span class="dot dot-grey" id="dot-watcher"></span>
+          <span id="label-watcher">Watcher</span>
+        </span>
+      </span>
+    </summary>
+
+    <section style="margin-top:12px">
+      <!-- Launch Chrome -->
+      <div class="control-row">
+        <div class="control-left">
+          <div class="control-label">Staging Chrome</div>
+          <div class="control-desc">Opens a separate Chrome window used only for job applications. Log into Greenhouse, Ashby, and LinkedIn once — it remembers your session.</div>
+          <div class="first-run-note" id="chrome-first-run-note">Log into Greenhouse, Ashby, and LinkedIn once in that window — it remembers your sessions automatically.</div>
+        </div>
+        <div class="control-right">
+          <button class="btn-secondary" id="btn-chrome" onclick="launchChrome()">Launch</button>
+        </div>
+      </div>
+
+      <!-- Stage applications -->
+      <div class="control-row">
+        <div class="control-left">
+          <div class="control-label">Stage today's applications</div>
+          <div class="control-desc">Opens each built application in the staging Chrome window, attaches your PDFs, and fills in text fields. You finish dropdowns, EEO questions, and click Submit.</div>
+        </div>
+        <div class="control-right">
+          <button class="btn-secondary" id="btn-stage" onclick="stageApps(false)">Stage</button>
+          <button class="link-btn" onclick="stageApps(true)">Preview (dry run)</button>
+        </div>
+      </div>
+      <div class="stage-log-box" id="stage-log-box"></div>
+
+      <!-- Watcher toggle -->
+      <div class="control-row">
+        <div class="control-left">
+          <div class="control-label">Job watcher</div>
+          <div class="control-desc">Checks your target job boards every 10 minutes and auto-builds roles that are a ≥90% fit. You'll get a macOS notification when something is ready to review.</div>
+        </div>
+        <div class="control-right">
+          <button class="toggle-btn off" id="btn-watcher" onclick="toggleWatcher()" aria-label="Toggle watcher"></button>
+        </div>
+      </div>
+
+      <!-- Discover fresh companies -->
+      <div class="control-row">
+        <div class="control-left">
+          <div class="control-label">Discover fresh companies</div>
+          <div class="control-desc">Mines the current Hacker News "Who is hiring?" thread for lesser-known companies (on Greenhouse / Lever / Ashby), adds the new ones to your watch list, and seeds their backlog so you're only alerted on brand-new posts. Be applicant #3, not #300.</div>
+        </div>
+        <div class="control-right">
+          <button class="btn-secondary" id="btn-discover" onclick="discoverCompanies()">Discover</button>
+        </div>
+      </div>
+    </section>
+  </details>
+
+ </div>
+
+
+<script>
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+function statusPill(status) {
+  const cls = `pill pill-${status ?? 'pending'}`;
+  return `<span class="${cls}">${status ?? 'pending'}</span>`;
+}
+
+function truncate(str, n) {
+  if (!str) return '';
+  return str.length > n ? str.slice(0, n) + '…' : str;
+}
+
+function esc(s) {
+  return (s ?? '').toString().replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+/**
+ * safeUrl — scheme-allowlist guard for href sinks that receive scraped/JD data.
+ * Returns the URL string only when the scheme is http: or https:; otherwise
+ * returns '#' so the link is inert rather than executable (blocks javascript:,
+ * data:, vbscript:, etc. from scraped applyUrl / jdUrl fields).
+ */
+function safeUrl(u) {
+  if (!u) return '#';
+  try {
+    const parsed = new URL(String(u));
+    return (parsed.protocol === 'http:' || parsed.protocol === 'https:') ? String(u) : '#';
+  } catch (_) {
+    return '#';
+  }
+}
+
+function fitClass(n) {
+  if (n == null) return 'fit-lo';
+  return n >= 85 ? 'fit-hi' : n >= 70 ? 'fit-mid' : 'fit-lo';
+}
+
+// Match-% rendered as number + a tiny inline meter, so coverage reads as a
+// glanceable signal (length + colour), not just a digit. Colour is paired with
+// the number, never the sole channel.
+function matchCell(n) {
+  if (n == null) return '<span class="matchcell"><span class="matchnum">—</span></span>';
+  const tier = n >= 85 ? 'hi' : n >= 70 ? 'mid' : 'lo';
+  const w = Math.max(0, Math.min(100, n));
+  return `<span class="matchcell"><span class="matchnum">${n}%</span>`
+       + `<span class="matchbar ${tier}"><i style="width:${w}%"></i></span></span>`;
+}
+
+// Ledger match cell: prefer coverage (from built application.md), fall back to
+// fitScore (from watcher scorer). When both are null, render a rescore button.
+function ledgerMatchCell(key, coverage, fitScore) {
+  const n = coverage ?? fitScore;
+  if (n != null) return matchCell(n);
+  return `<button class="btn-small" onclick="rescore('${esc(key)}', this)" title="Re-run fit scorer on the stored JD">↻ Score</button>`;
+}
+
+// Re-run the watcher fit-scorer on a ledger role that has no score yet.
+async function rescore(key, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  try {
+    const resp = await fetch('/control/rescore', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      loadLedger();
+    } else {
+      if (btn) { btn.disabled = false; btn.textContent = '↻ Score'; }
+      alert('Rescore failed: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = '↻ Score'; }
+    alert('Network error: ' + e.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Add URLs
+// ---------------------------------------------------------------------------
+async function addUrls() {
+  const btn = document.getElementById('addBtn');
+  const raw = document.getElementById('urlInput').value.trim();
+  if (!raw) return;
+
+  const urls = raw.split(/\n+/).map(u => u.trim()).filter(Boolean);
+  if (urls.length === 0) return;
+
+  btn.disabled = true;
+  const resultsEl = document.getElementById('results');
+  resultsEl.innerHTML = '';
+
+  for (const url of urls) {
+    const row = document.createElement('div');
+    row.className = 'result-row';
+    row.innerHTML = `<span class="badge" style="background:#e5e5ea;color:#6e6e73">…</span>
+      <div><div class="result-url">${url}</div><div class="result-msg">Sending…</div></div>`;
+    resultsEl.appendChild(row);
+
+    try {
+      const resp = await fetch('/intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const data = await resp.json();
+
+      let badge, msg;
+      if (data.queued) {
+        badge = `<span class="badge badge-ok">✓</span>`;
+        msg = `Queued — <strong>${data.company}</strong>: ${data.title}`;
+      } else if (data.duplicate) {
+        const d = data.entry?.firstSeen ?? data.entry?.appliedDate ?? '?';
+        badge = `<span class="badge badge-warn">⚠</span>`;
+        msg = `Duplicate — already seen ${d} (${data.entry?.status ?? ''})`;
+      } else {
+        badge = `<span class="badge badge-err">✕</span>`;
+        msg = `Error — ${data.error ?? JSON.stringify(data)}`;
+      }
+      row.innerHTML = `${badge}<div><div class="result-url">${url}</div><div class="result-msg">${msg}</div></div>`;
+    } catch (err) {
+      row.innerHTML = `<span class="badge badge-err">✕</span>
+        <div><div class="result-url">${url}</div><div class="result-msg">Network error: ${err.message}</div></div>`;
+    }
+  }
+
+  btn.disabled = false;
+  loadQueue();
+  loadLedger();
+}
+
+// ---------------------------------------------------------------------------
+// Review queue — decision inbox (status "new") + in-flight builds
+// ---------------------------------------------------------------------------
+async function loadQueue() {
+  try {
+    const resp = await fetch('/queue');
+    const data = await resp.json();
+    const items = data.items ?? [];
+    const inbox = items.filter(it => it.status === 'new');
+    const building = items.filter(it => ['pending', 'building', 'error'].includes(it.status));
+
+    // --- Live count badge on the section title ---
+    const countEl = document.getElementById('queueCount');
+    if (countEl) {
+      if (inbox.length > 0) { countEl.textContent = inbox.length; countEl.hidden = false; }
+      else { countEl.hidden = true; }
+    }
+
+    // --- Decision inbox: rich cards, strongest fit first ---
+    const inboxEl = document.getElementById('queueInbox');
+    if (inbox.length === 0) {
+      inboxEl.innerHTML = '<p class="empty-msg">No new roles to review. The watcher adds matches here as it finds them.</p>';
+    } else {
+      inbox.sort((a, b) => (b.fitScore ?? 0) - (a.fitScore ?? 0));
+      inboxEl.innerHTML = '<div class="inbox">' + inbox.map(it => {
+        const fit = it.fitScore != null ? it.fitScore + '%' : '—';
+        const titleLink = it.jdUrl
+          ? `<a class="job-link" href="${esc(safeUrl(it.jdUrl))}" target="_blank" rel="noopener">${esc(it.title)}</a>`
+          : esc(it.title);
+        const meta = [
+          it.ats && `via ${esc(it.ats)}`,
+          it.location && esc(it.location),
+          (it.tier != null) && `Tier ${esc(it.tier)}`,
+          it.deadline && `closes ${esc(it.deadline)}`,
+        ].filter(Boolean).join(' · ');
+        const gap = it.topGap ? `<div class="card-meta card-gap">⚠ Gap: ${esc(it.topGap)}</div>` : '';
+        const trap = it.trap ? `<div class="card-trap">⚠ Possible JD trap — review before building: ${esc(String(it.trap).slice(0, 140))}</div>` : '';
+        return `<div class="card">
+          <div class="fit ${fitClass(it.fitScore)}">${fit}<small>FIT</small></div>
+          <div class="card-body">
+            <div class="card-title"><span class="card-co">${esc(it.company)}</span> — ${titleLink}</div>
+            <div class="card-summary">${esc(it.summary || it.fitNote || 'No summary available.')}</div>
+            ${gap}
+            ${meta ? `<div class="card-meta">${meta}</div>` : ''}
+            ${trap}
+            <div class="card-actions">
+              <button class="btn-build" onclick="buildRole('${esc(it.id)}', this)">Build</button>
+              <button class="btn-small btn-pass" onclick="passRole({id:'${esc(it.id)}'})">Pass</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('') + '</div>';
+    }
+
+    // --- In-flight builds (manual intake or Rob-approved, building now) ---
+    // Partition: "building" status = actively running right now; "pending"/"error"
+    // = queued/stalled. The active one gets a prominent banner at the top;
+    // the backlog remains as the existing strip.
+    const buildEl = document.getElementById('queueBuilding');
+    if (building.length === 0) {
+      buildEl.innerHTML = '';
+    } else {
+      const active  = building.filter(it => it.status === 'building');
+      const backlog = building.filter(it => it.status !== 'building');
+
+      let html = '';
+
+      // Active-build banner: one item building right now → unmissable at the top.
+      if (active.length > 0) {
+        const ab = active[0];
+        const locText = ab.location ? `<span class="loc-chip">· ${esc(ab.location)}</span>` : '';
+        const titleDisplay = ab.jdUrl
+          ? `<a class="job-link" style="color:inherit" href="${esc(safeUrl(ab.jdUrl))}" target="_blank" rel="noopener">${esc(truncate(ab.title, 52))}</a>`
+          : esc(truncate(ab.title, 52));
+        const staleClass = ab.isStale ? ' build-stale' : '';
+        const staleLabel = ab.isStale ? 'Stuck?' : 'Building now';
+        // Elapsed time display (e.g. "4m 12s" or "1h 02m")
+        const elapsedTxt = (() => {
+          const s = ab.elapsedSeconds;
+          if (!s && s !== 0) return '';
+          if (s < 60) return `${s}s`;
+          const m = Math.floor(s / 60), rem = s % 60;
+          if (m < 60) return `${m}m ${String(rem).padStart(2,'0')}s`;
+          const h = Math.floor(m / 60), rm = m % 60;
+          return `${h}h ${String(rm).padStart(2,'0')}m`;
+        })();
+        const elapsedChip = elapsedTxt ? `<span class="build-elapsed">${esc(elapsedTxt)}</span>` : '';
+        const cancelBtn = `<button class="btn-small" style="margin-left:auto;flex-shrink:0" onclick="cancelBuild('${esc(ab.id)}', this)" title="Reset this stuck build back to pending">Cancel</button>`;
+        html += `<div class="build-banner${staleClass}">
+          <span class="pulse"></span>
+          <span class="build-banner-label">${staleLabel}</span>
+          <span class="build-banner-title">${esc(truncate(ab.company, 20))} &mdash; ${titleDisplay}${locText}</span>
+          ${elapsedChip}
+          ${cancelBtn}
+        </div>`;
+        // If more than one item is actively building (unusual — our lock prevents this),
+        // show them all with cancel buttons.
+        for (const extra of active.slice(1)) {
+          const eLocText = extra.location ? `<span class="loc-chip">· ${esc(extra.location)}</span>` : '';
+          const eStale = extra.isStale ? ' build-stale' : '';
+          html += `<div class="build-banner${eStale}" style="margin-top:4px">
+            <span class="pulse"></span>
+            <span class="build-banner-label">${extra.isStale ? 'Stuck?' : 'Building now'}</span>
+            <span class="build-banner-title">${esc(truncate(extra.company, 20))} &mdash; ${esc(truncate(extra.title, 52))}${eLocText}</span>
+            <button class="btn-small" style="margin-left:auto;flex-shrink:0" onclick="cancelBuild('${esc(extra.id)}', this)">Cancel</button>
+          </div>`;
+        }
+      }
+
+      // Backlog strip: pending + error items (not yet running).
+      if (backlog.length > 0) {
+        const anyPending = backlog.some(it => it.status === 'pending');
+        const rows = backlog.map(it => {
+          const locText = it.location ? `<span class="loc-chip">· ${esc(it.location)}</span>` : '';
+          const titleCell = it.jdUrl
+            ? `<a class="job-link" href="${esc(safeUrl(it.jdUrl))}" target="_blank" rel="noopener">${esc(truncate(it.title, 46))}</a>`
+            : esc(truncate(it.title, 46));
+          return `<tr>
+            <td>${esc(truncate(it.company, 28))}</td>
+            <td>${titleCell}${locText}</td>
+            <td>${statusPill(it.status)}</td>
+            <td class="num">${matchCell(it.coverage ?? it.fitScore)}</td>
+            <td>${it.status === 'error' ? `<button class="btn-small btn-pass" onclick="passRole({id:'${esc(it.id)}'})">Pass</button>` : ''}</td>
+          </tr>`;
+        }).join('');
+        const stripLabel = active.length > 0 ? 'Queue' : `In flight ${anyPending ? '<span class="inflight-note"><span class="pulse"></span>pending</span>' : ''}`;
+        html += `<div class="subhead">${stripLabel}</div><table>
+          <thead><tr><th>Company</th><th>Title</th><th>Status</th><th class="num">Coverage</th><th></th></tr></thead>
+          <tbody>${rows}</tbody></table>`;
+      }
+
+      buildEl.innerHTML = html;
+    }
+  } catch (e) {
+    document.getElementById('queueInbox').innerHTML =
+      `<p class="empty-msg">Failed to load queue: ${e.message}</p>`;
+  }
+}
+
+// Rob approves a "new" role → server flips it to pending and runs the builder.
+async function buildRole(id, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Building…'; }
+  try {
+    const resp = await fetch('/build', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    const data = await resp.json();
+    if (data.ok) { loadQueue(); loadLedger(); }
+    else {
+      if (btn) { btn.disabled = false; btn.textContent = 'Build'; }
+      alert('Could not build: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Build'; }
+    alert('Network error: ' + e.message);
+  }
+}
+
+// Cancel a stuck "building" item — resets it to pending so the next batch run
+// can retry it. Useful when elapsed time is long and nothing is progressing.
+async function cancelBuild(id, btn) {
+  if (!confirm(`Reset the stuck build for item "${id}" back to pending?\n\nThis is safe — the next batch run will retry it.`)) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Cancelling…'; }
+  try {
+    const resp = await fetch('/control/cancel-build', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    const data = await resp.json();
+    if (data.ok) { loadQueue(); }
+    else {
+      if (btn) { btn.disabled = false; btn.textContent = 'Cancel'; }
+      alert('Could not cancel: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Cancel'; }
+    alert('Network error: ' + e.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Ledger — application lifecycle (outcome dropdown + referral flag)
+// ---------------------------------------------------------------------------
+// Outcomes you can SET from the dropdown — only post-build lifecycle states.
+// "built" is the entry point (materials exist, not yet submitted). Pre-build
+// states (queued/tracked/skipped/passed/new) are NOT here: you can't relabel a
+// role "built" — you earn it by actually building the materials.
+const OUTCOMES = ['built', 'submitted', 'screener', 'interview', 'offer',
+                  'accepted', 'rejected', 'no-response', 'withdrew', 'expired'];
+// Pre-build states: no resume/cover letter exists yet → these rows get a Build
+// button instead of an outcome dropdown.
+const UNBUILT_STATES = new Set(['new', 'queued', 'tracked', 'skipped', 'passed']);
+// Intra-zone sort order: live stages (most promising) on top, un-built/terminal
+// at the bottom. (Cross-zone ordering is handled by LEDGER_ZONES below.)
+const LEDGER_ORDER = {
+  accepted: 0, offer: 1, interview: 2, screener: 3, submitted: 4, built: 5,
+  'no-response': 6, withdrew: 7, rejected: 8, expired: 8,
+  queued: 9, tracked: 9, skipped: 10, passed: 10,
+};
+
+// Which lifecycle zone each status renders in. This is the heart of the
+// "surface action, hide the dead" IA: it only changes GROUPING + ORDER, never
+// the per-row wiring (ledgerRow() below produces identical handlers).
+// Any status not listed defaults to 'play' so a new/unknown status is never
+// dropped — it surfaces in a visible zone rather than vanishing.
+const LEDGER_ZONE = {
+  // ACT NOW — built materials waiting to be applied, plus a stalled queue/error.
+  built: 'act', queued: 'act', tracked: 'act', error: 'act',
+  // IN PLAY — live conversations to keep warm.
+  screener: 'play', interview: 'play', offer: 'play', accepted: 'play',
+  // WAITING — sent, now a waiting game. Visible but quiet.
+  submitted: 'wait',
+  // ARCHIVE — dead/declined. Collapsed + muted, out of the way.
+  rejected: 'arch', 'no-response': 'arch', withdrew: 'arch',
+  skipped: 'arch', passed: 'arch', expired: 'arch',
+};
+
+// Zone definitions in render order. Each is a card-internal group with an
+// eyebrow header + live count. 'act' leads; 'arch' collapses.
+const LEDGER_ZONES = [
+  { id: 'act',  cls: 'zone-act',  eyebrow: 'Act now',  sub: 'ready to apply' },
+  { id: 'play', cls: 'zone-play', eyebrow: 'In play',  sub: 'keep these warm' },
+  { id: 'wait', cls: 'zone-wait', eyebrow: 'Waiting',  sub: 'sent — tracking only' },
+];
+
+// Build the markup for ONE ledger row. Wiring is byte-for-byte identical to the
+// original flat table: same buildFromLedger / markOutcome / setReferral /
+// autofillRole handlers, same Auto-fill cell kept separate from the title link.
+function ledgerRow(e) {
+  const locChip = e.location ? `<span class="loc-chip">· ${esc(e.location)}</span>` : '';
+  const titleLink = (e.applyUrl
+    ? `<a class="job-link" href="${esc(safeUrl(e.applyUrl))}" target="_blank" rel="noopener">${esc(truncate(e.title, 46))}</a>`
+    : esc(truncate(e.title, 46))) + locChip;
+
+  let outcomeCell;
+  // Action cell: Build button for unbuilt rows; Auto-fill button for built rows.
+  // Kept in its own column so it can never be triggered by clicking the title link.
+  let actionCell = '';
+  if (UNBUILT_STATES.has(e.status)) {
+    // Not built yet → compact retire-only dropdown in Outcome (marks the role
+    // dead before it ever builds); Build button moves to the Action column.
+    // Active-pipeline states (submitted/screener/…) are NOT offered — those
+    // require a built resume to be meaningful.
+    const RETIRE_STATES = ['expired', 'passed', 'rejected', 'withdrew'];
+    const retireOpts = [`<option value="${esc(e.status)}" selected>${esc(e.status)}</option>`]
+      .concat(RETIRE_STATES.filter(r => r !== e.status)
+        .map(r => `<option value="${r}">${r}</option>`))
+      .join('');
+    outcomeCell = `<select class="outcome-select" onchange="markOutcome('${esc(e.key)}', this.value)">${retireOpts}</select>`;
+    // Build button → Action column (primary action for unbuilt rows).
+    actionCell = e.applyUrl
+      ? `<button class="btn-build" onclick="buildFromLedger('${esc(e.key)}', '${esc(e.applyUrl)}', this)">Build</button>`
+      : `<span style="color:var(--text-2);font-size:12px" title="No URL on file — re-add via the box above">no URL</span>`;
+  } else {
+    // Built (materials exist) → full lifecycle outcome dropdown.
+    let opts = OUTCOMES.map(o =>
+      `<option value="${o}"${o === e.status ? ' selected' : ''}>${o}</option>`).join('');
+    if (!OUTCOMES.includes(e.status)) {  // surface any legacy status, don't lose it
+      opts = `<option value="${esc(e.status)}" selected>${esc(e.status)}</option>` + opts;
+    }
+    outcomeCell = `<select class="outcome-select" onchange="markOutcome('${esc(e.key)}', this.value)">${opts}</select>`;
+    // Auto-fill button → Action column (primary action for built rows).
+    actionCell =
+      `<button class="btn-autofill" title="Open this role in staging Chrome, fill fields, and attach PDFs — never submits"
+               onclick="autofillRole('${esc(e.key)}', this)">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+           <path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/>
+         </svg>Auto-fill</button><span class="autofill-status" id="af-status-${esc(e.key)}"></span>`;
+  }
+
+  return `<tr>
+    <td>${esc(truncate(e.company, 26))}</td>
+    <td>${titleLink}</td>
+    <td class="num">${ledgerMatchCell(e.key, e.coverage, e.fitScore)}</td>
+    <td>${outcomeCell}</td>
+    <td><label class="ref-box"><input type="checkbox" ${e.referral ? 'checked' : ''} onchange="setReferral('${esc(e.key)}', this.checked)"> ref</label></td>
+    <td class="autofill-cell">${actionCell}</td>
+    <td class="date" style="color:var(--text-2)">${e.firstSeen ?? '—'}</td>
+    <td class="date" style="color:var(--text-2)">${e.appliedDate ?? '—'}</td>
+  </tr>`;
+}
+
+// Render one zone's table (header row + body). Returns '' when the zone is empty
+// so it leaves no visual footprint.
+function ledgerZoneTable(rows) {
+  return `<table>
+    <thead><tr>
+      <th>Company</th><th>Title</th>
+      <th class="num">Match <button class="btn-small" id="btn-rescore-all" onclick="rescoreAll(this)"
+          title="Re-run the fit scorer on every active row (runs in background)">↻</button></th>
+      <th>Outcome</th><th>Referral</th>
+      <th>Action</th><th class="date">First seen</th><th class="date">Applied</th>
+    </tr></thead>
+    <tbody>${rows.map(ledgerRow).join('')}</tbody>
+  </table>`;
+}
+
+function sortZone(list) {
+  return [...list].sort((a, b) => {
+    const sa = LEDGER_ORDER[a.status] ?? 5, sb = LEDGER_ORDER[b.status] ?? 5;
+    if (sa !== sb) return sa - sb;
+    return (b.firstSeen ?? '').localeCompare(a.firstSeen ?? '');
+  });
+}
+
+async function loadLedger() {
+  try {
+    const resp = await fetch('/ledger');
+    const data = await resp.json();
+    // "new" entries are undecided candidates — they live in the review queue.
+    const entries = (data.entries ?? []).filter(e => e.status !== 'new');
+    const el = document.getElementById('ledgerTable');
+    if (entries.length === 0) {
+      el.innerHTML = '<p class="empty-msg">No applications yet. Build one from the review queue above.</p>';
+      return;
+    }
+
+    // Bucket every entry into its lifecycle zone (unknown → 'play', never lost).
+    const buckets = { act: [], play: [], wait: [], arch: [] };
+    for (const e of entries) {
+      const z = LEDGER_ZONE[e.status] ?? 'play';
+      buckets[z].push(e);
+    }
+
+    let html = '';
+
+    // Visible zones: Act now → In play → Waiting. Empty zones render nothing.
+    for (const z of LEDGER_ZONES) {
+      const rows = sortZone(buckets[z.id]);
+      if (rows.length === 0) continue;
+      html += `<div class="zone ${z.cls}">
+        <div class="zone-head">
+          <span class="zone-eyebrow">${z.eyebrow}</span>
+          <span class="zone-count">${rows.length}</span>
+          <span class="zone-sub">${z.sub}</span>
+        </div>
+        <div class="ledger-scroll">${ledgerZoneTable(rows)}</div>
+      </div>`;
+    }
+
+    // Archive: collapsed by default, muted. Only render the disclosure when
+    // there's something dead to tuck away.
+    const archRows = sortZone(buckets.arch);
+    if (archRows.length > 0) {
+      html += `<details class="archive zone-arch">
+        <summary>
+          <svg class="disclosure-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+          <span class="zone-eyebrow">Archive</span>
+          <span class="zone-count">${archRows.length}</span>
+          <span class="zone-sub">rejected · no-response · withdrew · passed · expired</span>
+        </summary>
+        <div class="archive-body ledger-scroll">${ledgerZoneTable(archRows)}</div>
+      </details>`;
+    }
+
+    el.innerHTML = html || '<p class="empty-msg">No applications yet. Build one from the review queue above.</p>';
+  } catch (e) {
+    document.getElementById('ledgerTable').innerHTML =
+      `<p class="empty-msg">Failed to load ledger: ${e.message}</p>`;
+  }
+}
+
+// Outcome dropdown → records the transition (and its date) into statusHistory.
+async function markOutcome(key, status) {
+  try {
+    const resp = await fetch('/ledger/mark', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, status }),
+    });
+    const data = await resp.json();
+    if (data.ok) loadLedger();
+    else alert('Error: ' + JSON.stringify(data));
+  } catch (e) { alert('Network error: ' + e.message); }
+}
+
+// Auto-fill (Phase 5) → POST /autofill { key }. The bridge spawns
+// scripts/autofill.js, which opens the role's apply page in the staging Chrome,
+// fills the standard fields, attaches the PDFs, and STOPS before submit. We show
+// inline status next to the button; the actual filling happens in Chrome.
+async function autofillRole(key, btn) {
+  const status = document.getElementById('af-status-' + key);
+  if (!_chromeState) {
+    if (status) { status.className = 'autofill-status err'; status.textContent = 'Launch Staging Chrome first'; }
+    return;
+  }
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  if (status) { status.className = 'autofill-status'; status.textContent = 'Opening…'; }
+  try {
+    const resp = await fetch('/autofill', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key }),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      if (status) { status.className = 'autofill-status ok'; status.textContent = 'Opened in Chrome — review & submit'; }
+    } else {
+      if (status) { status.className = 'autofill-status err'; status.textContent = data.error || 'Failed'; }
+    }
+  } catch (e) {
+    if (status) { status.className = 'autofill-status err'; status.textContent = 'Network error: ' + e.message; }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  }
+}
+
+// Referral checkbox → likely the biggest conversion lever, so we track it.
+async function setReferral(key, referral) {
+  try {
+    await fetch('/ledger/mark', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, referral }),
+    });
+  } catch (e) { alert('Network error: ' + e.message); }
+}
+
+// Build a NOT-yet-built ledger role: re-runs intake on its URL (force=true skips
+// the dedup) so the builder actually generates the resume + cover letter. The
+// role enters the queue as "building"; once done it becomes "built" and the
+// outcome dropdown replaces this button. This is the ONLY way to reach "built".
+async function buildFromLedger(key, applyUrl, btn) {
+  if (!applyUrl) { alert('No URL on file for this role — re-add it via the box above.'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Building…'; }
+  try {
+    const resp = await fetch('/intake', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: applyUrl, force: true }),
+    });
+    const data = await resp.json();
+    if (data.queued) { loadQueue(); loadLedger(); }
+    else {
+      if (btn) { btn.disabled = false; btn.textContent = 'Build'; }
+      alert('Could not build: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Build'; }
+    alert('Network error: ' + e.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pass + feedback loop — Rob declines a role and teaches the engine why.
+// The reason lands in fit-feedback.json; the watcher's scorer reads it as
+// negative criteria, so similar roles score lower over time.
+// ---------------------------------------------------------------------------
+async function sendPass(payload, label) {
+  const reason = prompt(`Why doesn't ${label} fit?\n\nBe specific — this trains the engine (e.g. "requires people management", "gambling industry", "hardware QA, not design").`);
+  if (reason == null) return;                 // cancelled
+  if (!reason.trim()) { alert('A reason is required — the feedback is the point.'); return; }
+  try {
+    const resp = await fetch('/pass', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, reason: reason.trim() }),
+    });
+    const data = await resp.json();
+    if (data.ok) { loadQueue(); loadLedger(); }
+    else { alert('Error passing: ' + JSON.stringify(data)); }
+  } catch(e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+function passRole(payload) {
+  sendPass(payload, 'this role');
+}
+
+// ---------------------------------------------------------------------------
+// Controls
+// ---------------------------------------------------------------------------
+
+let _watcherState = false;      // last known watcher state
+let _chromeState  = false;      // last known chrome state
+let _stagePolling = null;       // setInterval handle for log polling
+let _scanActive = false;        // true while an on-demand "Search for roles" runs
+let _rescoreAllActive = false;  // true while a bulk rescore-all is in flight
+
+async function refreshStatus() {
+  try {
+    const data = await fetch('/control/status').then(r => r.json());
+    _chromeState  = !!data.chromeDebug;
+    _watcherState = !!data.watcher;
+    updateChromePill(_chromeState);
+    updateWatcherPill(_watcherState);
+
+    // Surface rate-limit pause so Rob knows why nothing is building.
+    const pausedEl = document.getElementById('pausedBanner');
+    if (pausedEl) {
+      if (data.pausedUntil) {
+        const until = new Date(data.pausedUntil);
+        const fmt = until.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        pausedEl.innerHTML = `<span class="paused-banner-label">Rate limit</span>
+          Batch paused — resumes at ${esc(fmt)} (${esc(data.pausedUntil)})`;
+        pausedEl.hidden = false;
+      } else {
+        pausedEl.hidden = true;
+      }
+    }
+
+    // Reflect on-demand "Search for roles" progress. The button is disabled +
+    // "Searching…" while a manual scan runs; when it ends, pull fresh roles
+    // immediately rather than waiting for the next 5s poll.
+    const scanBtn = document.getElementById('btn-scan');
+    if (scanBtn) {
+      if (data.scanning) {
+        scanBtn.disabled = true;
+        scanBtn.textContent = 'Searching…';
+        _scanActive = true;
+      } else if (_scanActive) {
+        _scanActive = false;
+        scanBtn.disabled = false;
+        scanBtn.textContent = '✓ Search complete';
+        loadQueue();
+        setTimeout(() => { scanBtn.textContent = 'Search for roles'; }, 4000);
+      }
+    }
+
+    // Reflect bulk rescore-all progress. The ↻ header button is disabled +
+    // "Rescoring…" while the background pass runs; when it finishes, reload
+    // the ledger to display the updated MATCH values.
+    const rescoreAllBtn = document.getElementById('btn-rescore-all');
+    if (rescoreAllBtn) {
+      if (data.rescoringAll) {
+        rescoreAllBtn.disabled = true;
+        rescoreAllBtn.textContent = 'Rescoring…';
+        _rescoreAllActive = true;
+      } else if (_rescoreAllActive) {
+        _rescoreAllActive = false;
+        rescoreAllBtn.disabled = false;
+        rescoreAllBtn.textContent = '↻';
+        loadLedger();
+      }
+    }
+  } catch (_) {
+    // engine status pill stays green (page loaded = engine up)
+  }
+}
+
+function updateChromePill(up) {
+  const dot   = document.getElementById('dot-chrome');
+  const label = document.getElementById('label-chrome');
+  const btn   = document.getElementById('btn-chrome');
+  dot.className   = 'dot ' + (up ? 'dot-green' : 'dot-grey');
+  label.textContent = up ? 'Staging Chrome — ready' : 'Staging Chrome — not running';
+  if (up) {
+    btn.textContent = '✓ Running';
+    btn.disabled = true;
+    btn.className = 'btn-done';
+  } else {
+    btn.textContent = 'Launch';
+    btn.disabled = false;
+    btn.className = 'btn-secondary';
+  }
+}
+
+function updateWatcherPill(on) {
+  const dot   = document.getElementById('dot-watcher');
+  const label = document.getElementById('label-watcher');
+  const btn   = document.getElementById('btn-watcher');
+  dot.className     = 'dot ' + (on ? 'dot-green' : 'dot-grey');
+  label.textContent = on ? 'Watcher — on' : 'Watcher — off';
+  btn.className     = 'toggle-btn ' + (on ? 'on' : 'off');
+}
+
+async function launchChrome() {
+  const btn = document.getElementById('btn-chrome');
+  btn.disabled = true;
+  btn.textContent = 'Launching…';
+  try {
+    const data = await fetch('/control/chrome', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json());
+    if (data.ok) {
+      // Show first-run note if Chrome wasn't already up
+      if (!_chromeState) {
+        document.getElementById('chrome-first-run-note').style.display = 'block';
+      }
+      // Poll until Chrome port answers (up to ~10s)
+      let tries = 0;
+      const poll = setInterval(async () => {
+        tries++;
+        const s = await fetch('/control/status').then(r => r.json()).catch(() => ({}));
+        if (s.chromeDebug || tries >= 20) {
+          clearInterval(poll);
+          updateChromePill(!!s.chromeDebug);
+        }
+      }, 500);
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Launch';
+      alert('Could not launch Chrome: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Launch';
+    alert('Network error: ' + e.message);
+  }
+}
+
+async function stageApps(dryRun) {
+  if (!dryRun && !_chromeState) {
+    alert('Staging Chrome is not running.\nClick "Launch" first, then try again.');
+    return;
+  }
+  const logBox = document.getElementById('stage-log-box');
+  logBox.style.display = 'block';
+  logBox.textContent   = dryRun ? 'Running dry-run preview…' : 'Staging applications…';
+
+  try {
+    const resp = await fetch('/control/stage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dryRun }),
+    });
+    const data = await resp.json();
+    if (!data.ok) {
+      logBox.textContent = 'Error: ' + (data.error || JSON.stringify(data));
+      return;
+    }
+    // Poll stage-log until process finishes (simple: poll for 60s or until "Done." line)
+    if (_stagePolling) clearInterval(_stagePolling);
+    let pollCount = 0;
+    _stagePolling = setInterval(async () => {
+      pollCount++;
+      const log = await fetch('/control/stage-log').then(r => r.text()).catch(() => '');
+      logBox.textContent = log;
+      logBox.scrollTop   = logBox.scrollHeight;
+      // Stop polling once we see the final summary line or after 90s
+      if (log.includes('Done.') || pollCount > 180) {
+        clearInterval(_stagePolling);
+        _stagePolling = null;
+      }
+    }, 500);
+  } catch (e) {
+    logBox.textContent = 'Network error: ' + e.message;
+  }
+}
+
+async function toggleWatcher() {
+  const newState = !_watcherState;
+  // Optimistic UI update
+  updateWatcherPill(newState);
+  try {
+    const data = await fetch('/control/watcher', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ on: newState }),
+    }).then(r => r.json());
+    if (data.ok) {
+      _watcherState = !!data.watcher;
+      updateWatcherPill(_watcherState);
+    } else {
+      // Roll back
+      _watcherState = !newState;
+      updateWatcherPill(_watcherState);
+      alert('Could not change watcher state: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (e) {
+    _watcherState = !newState;
+    updateWatcherPill(_watcherState);
+    alert('Network error: ' + e.message);
+  }
+}
+
+async function searchRoles() {
+  const btn = document.getElementById('btn-scan');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true; btn.textContent = 'Searching…';
+  _scanActive = true;
+  try {
+    const data = await fetch('/control/scan', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json());
+    if (!data.ok) {
+      _scanActive = false;
+      btn.disabled = false; btn.textContent = 'Search for roles';
+      alert('Search failed: ' + (data.error || JSON.stringify(data)));
+    }
+    // On success the status poll (refreshStatus) flips the button back to
+    // "Search complete" + reloads the inbox once the scan's PID exits.
+  } catch (e) {
+    _scanActive = false;
+    btn.disabled = false; btn.textContent = 'Search for roles';
+    alert('Network error: ' + e.message);
+  }
+}
+
+// Kick a full-column rescore. The background pass updates each row's MATCH value;
+// refreshStatus() detects when it finishes (rescoringAll flips false) and calls
+// loadLedger() to redraw with the fresh numbers.
+async function rescoreAll(btn) {
+  if (!btn || btn.disabled) return;  // guard double-clicks
+  btn.disabled = true; btn.textContent = 'Rescoring…';
+  _rescoreAllActive = true;
+  try {
+    const data = await fetch('/control/rescore-all', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json());
+    if (!data.ok) {
+      _rescoreAllActive = false;
+      btn.disabled = false; btn.textContent = '↻';
+      alert('Rescore-all failed: ' + (data.error || JSON.stringify(data)));
+    }
+    // On success the status poll (refreshStatus) drives the button state and
+    // calls loadLedger() when the background pass exits.
+  } catch (e) {
+    _rescoreAllActive = false;
+    btn.disabled = false; btn.textContent = '↻';
+    alert('Network error: ' + e.message);
+  }
+}
+
+async function discoverCompanies() {
+  const btn = document.getElementById('btn-discover');
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Mining HN…';
+  try {
+    const data = await fetch('/control/discover', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: '{}' }).then(r => r.json());
+    if (data.ok) {
+      btn.textContent = data.added != null ? `+${data.added} added` : 'Done';
+      alert(`Discovery complete.\n\nAdded ${data.added ?? '?'} fresh companies (watch list now ${data.total ?? '?'}).\nTurn the Job watcher ON to start getting alerts on their new posts.`);
+    } else {
+      btn.textContent = orig;
+      alert('Discovery failed: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (e) {
+    btn.textContent = orig;
+    alert('Network error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = orig; }, 4000);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Init + polling
+// ---------------------------------------------------------------------------
+loadQueue();
+loadLedger();
+refreshStatus();
+setInterval(loadQueue,      5000);
+setInterval(refreshStatus,  5000);
+</script>
+</body>
+</html>

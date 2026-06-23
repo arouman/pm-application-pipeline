@@ -1,0 +1,496 @@
+/* ── Reset & base ──────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Brand */
+  --color-accent:       #005C6E;
+  --color-accent-dim:   #00788e;
+  --color-accent-light: #e6f4f7;
+  --color-accent-text:  #ffffff;
+
+  /* Surfaces */
+  --color-bg:           #f7f8f9;
+  --color-surface:      #ffffff;
+  --color-border:       #e2e6ea;
+  --color-border-light: #edf0f3;
+
+  /* Text */
+  --color-text-primary:   #1a1d20;
+  --color-text-secondary: #5a6370;
+  --color-text-muted:     #8c97a3;
+
+  /* Tier badges */
+  --color-tier1-bg:   #fff3e0;
+  --color-tier1-text: #8a4a00;
+  --color-tier2-bg:   #e8f4fd;
+  --color-tier2-text: #1a5c8a;
+  --color-tier3-bg:   #f0f0f0;
+  --color-tier3-text: #4a4a4a;
+
+  /* ATS badges */
+  --color-ats-bg:     #f0faf7;
+  --color-ats-text:   #005C6E;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+
+  /* Typography */
+  --font-family: "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-size-xs:   11px;
+  --font-size-sm:   12px;
+  --font-size-base: 14px;
+  --font-size-md:   15px;
+  --font-size-lg:   17px;
+  --font-size-xl:   20px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 12px rgba(0, 92, 110, 0.12), 0 1px 3px rgba(0, 0, 0, 0.06);
+
+  /* Transitions */
+  --transition-fast: 140ms ease;
+}
+
+html {
+  font-size: var(--font-size-base);
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  line-height: 1.5;
+  /* Chrome side panels are 400 px wide by default */
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────────── */
+
+.panel-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  flex-shrink: 0;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.panel-title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-accent);
+  letter-spacing: -0.3px;
+}
+
+/* Refresh icon button */
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-icon:hover {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.btn-icon:active {
+  background: #cce8ee;
+}
+
+.btn-icon.spinning svg {
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Status line: "107 matches · Updated 2 min ago" */
+.status-line {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  min-height: 16px;
+  margin-bottom: var(--space-md);
+}
+
+/* Filters row */
+.filters-row {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.filter-input,
+.filter-select {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  height: 36px;
+}
+
+.filter-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-select {
+  flex-shrink: 0;
+  /* Enough room for "All companies" */
+  max-width: 140px;
+  cursor: pointer;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(0, 92, 110, 0.15);
+}
+
+/* ── Main scrollable area ──────────────────────────────────────────────────── */
+
+.panel-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg);
+  scroll-padding-top: var(--space-md);
+}
+
+/* ── State views (loading / offline / empty / results) ─────────────────────── */
+
+.state-view[hidden] {
+  display: none;
+}
+
+.state-view {
+  display: block;
+}
+
+/* ── Loading skeletons ─────────────────────────────────────────────────────── */
+
+.skeleton-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #e8ecef 0%, #f2f4f6 50%, #e8ecef 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-label {
+  height: 14px;
+  width: 64px;
+  margin-bottom: var(--space-xs);
+}
+
+.skeleton-card {
+  height: 88px;
+  width: 100%;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Empty / offline states ────────────────────────────────────────────────── */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-xl) var(--space-lg);
+  gap: var(--space-md);
+}
+
+.empty-icon {
+  color: var(--color-text-muted);
+}
+
+.empty-title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.empty-body {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  max-width: 260px;
+  line-height: 1.6;
+}
+
+.code-hint {
+  font-family: "SF Mono", "Fira Mono", "Consolas", monospace;
+  font-size: var(--font-size-sm);
+  background: var(--color-border-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  color: var(--color-accent);
+  white-space: pre;
+}
+
+/* Primary action button (used in empty states) */
+.btn-primary {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-accent-text);
+  background: var(--color-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-xl);
+  cursor: pointer;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.btn-primary:hover {
+  background: var(--color-accent-dim);
+  box-shadow: 0 2px 8px rgba(0, 92, 110, 0.3);
+}
+
+.btn-primary:active {
+  background: var(--color-accent);
+}
+
+/* ── Tier section headers ───────────────────────────────────────────────────── */
+
+.tier-section {
+  margin-bottom: var(--space-xl);
+}
+
+.tier-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.tier-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 2px var(--space-sm);
+  border-radius: 10px;
+}
+
+.tier-label--1 { background: var(--color-tier1-bg); color: var(--color-tier1-text); }
+.tier-label--2 { background: var(--color-tier2-bg); color: var(--color-tier2-text); }
+.tier-label--3, .tier-label--other { background: var(--color-tier3-bg); color: var(--color-tier3-text); }
+
+.tier-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.tier-divider {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border-light);
+}
+
+/* ── Role cards ─────────────────────────────────────────────────────────────── */
+
+.roles-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.role-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.role-card:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: #b3d8e0;
+}
+
+.card-company {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.card-title {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.35;
+  margin-bottom: var(--space-xs);
+}
+
+.card-location {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-md);
+}
+
+.card-location:empty {
+  display: none;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.badge-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+/* ATS platform badge (greenhouse / lever / ashby) */
+.badge-ats {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  background: var(--color-ats-bg);
+  color: var(--color-ats-text);
+  border: 1px solid #c0dfe5;
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+}
+
+/* Tier mini-badge inside card */
+.badge-tier {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+.badge-tier--1 { background: var(--color-tier1-bg); color: var(--color-tier1-text); }
+.badge-tier--2 { background: var(--color-tier2-bg); color: var(--color-tier2-text); }
+.badge-tier--3, .badge-tier--other { background: var(--color-tier3-bg); color: var(--color-tier3-text); }
+
+/* Card action buttons */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.btn-link {
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-accent);
+  background: none;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-link:hover {
+  background: var(--color-accent-light);
+}
+
+.btn-scout {
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-scout:hover {
+  background: var(--color-border-light);
+  border-color: #c8cfd6;
+  color: var(--color-text-primary);
+}
+
+/* Inline note shown after scout response */
+.scout-note {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+  font-style: italic;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────────── */
+
+.panel-main::-webkit-scrollbar {
+  width: 5px;
+}
+.panel-main::-webkit-scrollbar-track {
+  background: transparent;
+}
+.panel-main::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 10px;
+}
+.panel-main::-webkit-scrollbar-thumb:hover {
+  background: #b0bcc8;
+}

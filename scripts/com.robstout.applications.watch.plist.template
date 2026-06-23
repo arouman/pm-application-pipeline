@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- rendered by setup.sh: __REPO__ __HOME__ __NODE__ tokens are substituted at install time -->
+<!--
+  launchd job: early-applicant watcher — polls ATS boards every 600 seconds.
+
+  Runs watch-jobs.py with the -once flag on each tick. The script handles
+  its own state (seen-jobs.json) and rate-limit awareness (.paused-until),
+  so launchd just needs to fire it; the script does the right thing on
+  every invocation.
+
+  ACTIVATION IS A DELIBERATE STEP:
+    sed -e 's|__REPO__|/abs/path/to/repo|g' -e 's|__HOME__|/Users/yourname|g' \
+        scripts/com.robstout.applications.watch.plist.template \
+        > ~/Library/LaunchAgents/local.jobpipeline.watch.plist
+    launchctl load ~/Library/LaunchAgents/local.jobpipeline.watch.plist
+
+  To stop:
+    launchctl unload ~/Library/LaunchAgents/local.jobpipeline.watch.plist
+
+  To check status:
+    launchctl list | grep watch
+
+  Adjust PATH below if python3 lives elsewhere (run `which python3`).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.jobpipeline.watch</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>python3</string>
+    <string>__REPO__/scripts/watch-jobs.py</string>
+    <string>--once</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__HOME__/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>HOME</key><string>__HOME__</string>
+  </dict>
+  <key>StartInterval</key><integer>600</integer>
+  <key>RunAtLoad</key><false/>
+  <key>StandardOutPath</key><string>__REPO__/applied/_queue/watch-launchd.log</string>
+  <key>StandardErrorPath</key><string>__REPO__/applied/_queue/watch-launchd.log</string>
+</dict>
+</plist>
