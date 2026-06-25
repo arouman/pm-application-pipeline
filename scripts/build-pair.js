@@ -26,6 +26,13 @@ const { V2: V } = require('./verbatim2');
 const fs = require('fs');
 const path = require('path');
 
+const PROFILE_PATH = path.resolve(__dirname, '../private/applicant-profile.json');
+const PROFILE = (() => {
+  try { return JSON.parse(fs.readFileSync(PROFILE_PATH, 'utf8')).identity; }
+  catch { throw new Error(`Missing private/applicant-profile.json — copy private/applicant-profile.example.json and fill in your details.`); }
+})();
+const FULL_NAME = PROFILE.fullName;
+
 function ro(arr, idxs) {
   const rest = arr.filter((_, i) => !idxs.includes(i));
   return [...idxs.map(i => arr[i]), ...rest];
@@ -49,16 +56,16 @@ function buildCoverLetterDated(role, company, p1, p2, p3, dateStr) {
     sections: [{
       properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
       children: [
-        new P({ spacing: { before: 0, after: 40 }, children: [new T({ text: "ADAM ROUMAN", bold: true, size: 32, font: "Arial", color: "1a1a1a" })] }),
-        new P({ spacing: { before: 0, after: 60 }, border: { bottom: { style: BS.SINGLE, size: 4, color: BLUE, space: 6 } }, children: [new T({ text: "arouman@gmail.com  |  (951) 733-2310  |  adamrouman.com", size: 18, font: "Arial", color: LIGHT })] }),
+        new P({ spacing: { before: 0, after: 40 }, children: [new T({ text: PROFILE.fullName.toUpperCase(), bold: true, size: 32, font: "Arial", color: "1a1a1a" })] }),
+        new P({ spacing: { before: 0, after: 60 }, border: { bottom: { style: BS.SINGLE, size: 4, color: BLUE, space: 6 } }, children: [new T({ text: [PROFILE.email, PROFILE.phone, PROFILE.website].filter(Boolean).join("  |  "), size: 18, font: "Arial", color: LIGHT })] }),
         new P({ spacing: { before: 180, after: 60 }, children: [new T({ text: dateStr, size: 19, font: "Georgia", color: LIGHT })] }),
         new P({ spacing: { before: 0, after: 240 }, children: [new T({ text: `Re: ${role} at ${company}`, bold: true, size: 20, font: "Georgia", color: "1a1a1a" })] }),
         new P({ spacing: { before: 0, after: 220 }, children: [new T({ text: p1, size: 21, font: "Georgia", color: "1a1a1a" })] }),
         new P({ spacing: { before: 0, after: 220 }, children: [new T({ text: p2, size: 21, font: "Georgia", color: "1a1a1a" })] }),
         new P({ spacing: { before: 0, after: 220 }, children: [new T({ text: p3, size: 21, font: "Georgia", color: "1a1a1a" })] }),
         new P({ spacing: { before: 200, after: 60 }, children: [new T({ text: "Sincerely,", size: 21, font: "Georgia", color: "444444" })] }),
-        new P({ spacing: { before: 0, after: 20 }, children: [new T({ text: "Adam Rouman", bold: true, size: 22, font: "Georgia", color: "1a1a1a" })] }),
-        new P({ spacing: { before: 0, after: 0 }, children: [new T({ text: "arouman@gmail.com  |  (951) 733-2310", size: 18, font: "Georgia", color: LIGHT })] }),
+        new P({ spacing: { before: 0, after: 20 }, children: [new T({ text: PROFILE.fullName, bold: true, size: 22, font: "Georgia", color: "1a1a1a" })] }),
+        new P({ spacing: { before: 0, after: 0 }, children: [new T({ text: [PROFILE.email, PROFILE.phone].filter(Boolean).join("  |  "), size: 18, font: "Georgia", color: LIGHT })] }),
       ]
     }]
   });
@@ -81,14 +88,15 @@ async function main() {
   // Resume
   const resume = buildResume(V, summary, competencyText,
     ro(V.atlassian, atBulletIdxs), ro(V.ehealth, ehBulletIdxs), tools, pmTitle || title);
-  const rDocx = path.join('/tmp', `Adam_Rouman_Resume_${tSlug}_${cSlug}.docx`);
+  const nameSlug = slug(FULL_NAME);
+  const rDocx = path.join('/tmp', `${nameSlug}_Resume_${tSlug}_${cSlug}.docx`);
   fs.writeFileSync(rDocx, await Packer.toBuffer(resume));
   toPDF(rDocx, outputDir);
   fs.copyFileSync(rDocx, path.join(outputDir, path.basename(rDocx)));
 
   // Cover letter
   const cl = buildCoverLetterDated(title, company, p1, p2, p3, dateStr);
-  const cDocx = path.join('/tmp', `Adam_Rouman_Cover_Letter_${tSlug}_${cSlug}.docx`);
+  const cDocx = path.join('/tmp', `${nameSlug}_Cover_Letter_${tSlug}_${cSlug}.docx`);
   fs.writeFileSync(cDocx, await Packer.toBuffer(cl));
   toPDF(cDocx, outputDir);
   fs.copyFileSync(cDocx, path.join(outputDir, path.basename(cDocx)));

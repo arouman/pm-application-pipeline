@@ -1,5 +1,12 @@
 # Personal / PII — never commit
 private/
+!private/applicant-profile.example.json
+
+# Personal resume and cover letter master files — add your own, keep them local
+master-resumes/*.docx
+!master-resumes/README.md
+cover-letter-template/*_TOKENS.docx
+!cover-letter-template/Cover_Letter_Template_TOKENS.docx
 
 # Dossier intake drop-folder — your own documents stay local (README is tracked)
 intake-docs/*

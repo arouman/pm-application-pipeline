@@ -1,8 +1,8 @@
 # Daily Job Search + Enqueue (Ashby + Greenhouse)
 
-You are running an automated daily job search for Adam Rouman's application pipeline.
+You are running an automated daily job search for a candidate's application pipeline.
 
-REPO=/Users/adamrouman/Projects/applications
+REPO=~/Projects/applications  # update to your actual repo path
 QUEUE=$REPO/applied/_queue/queue.json
 
 ## Goal

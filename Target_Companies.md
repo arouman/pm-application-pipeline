@@ -1,4 +1,4 @@
-# Target Company Landscape — Adam Rouman
+# Target Company Landscape
 
 ---
 

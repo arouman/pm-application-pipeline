@@ -6,5 +6,5 @@ EasyPost's mission, solving the complex logistics and carrier integration proble
 
 EasyPost's YC unicorn trajectory and the PM III mandate, owning the product lifecycle end-to-end for solutions aimed at a growing developer user segment, is a product role with real business leverage. I would enjoy a conversation about which developer segment or integration surface this role would own first and where the biggest developer experience friction is today.
 
-Sincerely, Adam Rouman
-arouman@gmail.com | (951) 733-2310
+Sincerely, [Your Name]
+[your.email@example.com] | [your phone]

@@ -1,39 +1,75 @@
+/**
+ * verbatim2.js — Pre-vetted resume bullet bank
+ *
+ * SETUP: Replace every entry below with your own verified bullets.
+ * Each bullet is a two-part array: [bold metric prefix, rest of the sentence].
+ * The application-builder agent selects and reorders these by index — it NEVER
+ * rewrites them. All claims must trace to your projects.md / competencies.md.
+ *
+ * Structure per employer:
+ *   V2.atlassian   — your most recent / most prominent role (8 bullets recommended)
+ *   V2.ehealth     — second employer (3+ bullets)
+ *   V2.cake        — third employer (2+ bullets)
+ *   V2.rocketLawyer — fourth employer (2+ bullets)
+ *   V2.slidepay    — fifth employer (2+ bullets)
+ *   V2.aiDev       — personal / side projects (optional, grouped by project)
+ *   V2.education   — degrees and certifications (plain strings, not bullet pairs)
+ *
+ * Rename the keys to match your actual employers. Update application-builder.md
+ * and builder5.js accordingly if you rename keys.
+ */
+
 const V2 = {
+  // ── EMPLOYER 1 (most recent / most prominent) ──────────────────────────────
   atlassian: [
-    ["10x YoY KR improvement, 1M+ paid seats unblocked"," — led enterprise cloud migration for SCM and CI/CD, using AI (OpenAI, Loom) to turn customer feedback into actionable GTM learnings."],
-    ["$4M+ MRR migrated to modernized billing"," — designed seamless migration and communication plans across enterprise, SMB, and non-profit segments without churn."],
-    ["+1M adopted seats and $5M ARR"," — cut data residency time-to-market from 18 months to 30 days for 4 new products by creating tailored onboarding journeys for internal teams."],
-    ["$150K in COGS saved"," — built an AI-assisted profitability framework using Claude and Rovo CLI, surfacing 3 global expansion opportunities aligned with internal return thresholds."],
-    ["FedRAMP Moderate achieved for Jira and Confluence"," — advanced compliance from 10% to 100% against 325 controls in ~8 months by building internal toolset and dashboard for 5K+ Atlassian teams."],
-    ["40+ hours of manual research eliminated"," — built a production AI agent (Rovo CLI) that synthesized 200+ enterprise discovery and churn calls into a prioritized roadmap with revenue and adoption data."],
-    ["15K new activations and 2K paid trial starts"," — ran top-of-funnel experimentation pipeline for incubator products, aligning GTM stakeholders on goals and translating experiment data into roadmap decisions."],
-    ["Jira Work Management activation up 25%"," — built personalized multivariate testing workflows, iterating copy, design, and user journeys with engineering, design, and data teams for maximum impact."],
+    // Format: ["Bold metric or outcome", " — supporting detail and method."]
+    ["[Metric: e.g. 10x YoY KR improvement]", " — [what you did, how you did it, tools/teams involved]."],
+    ["[Metric: e.g. $4M+ MRR migrated]", " — [what you did, how you did it]."],
+    ["[Metric: e.g. +1M adopted seats]", " — [what you did, how you did it]."],
+    ["[Metric: e.g. $150K in COGS saved]", " — [what you did, how you did it]."],
+    ["[Metric: e.g. Compliance milestone achieved]", " — [what you did, how you did it]."],
+    ["[Metric: e.g. 40+ hours of manual work eliminated]", " — [what you did, how you did it]."],
+    ["[Metric: e.g. 15K new activations]", " — [what you did, how you did it]."],
+    ["[Metric: e.g. Activation up 25%]", " — [what you did, how you did it]."],
   ],
+
+  // ── EMPLOYER 2 ─────────────────────────────────────────────────────────────
   ehealth: [
-    ["10% enrollment lift — a 2020 company milestone"," — designed and launched AI-powered voice automation (AWS Connect + Twilio) that extracted customer health data in real time during sales calls."],
-    ["45% pipeline growth and 1,200 additional appointments"," — launched Schedule a Call integrated directly with Salesforce; consolidated 50+ legacy reports saving leadership 200+ hours monthly."],
-    ["$1M+ in time savings delivered"," — directed end-to-end Salesforce rollout (mobile and web) for 3,000+ sales agents, optimizing customer and billing management workflows."],
+    ["[Metric: e.g. 10% enrollment lift]", " — [what you did, how you did it]."],
+    ["[Metric: e.g. 45% pipeline growth]", " — [what you did, how you did it]."],
+    ["[Metric: e.g. $1M+ in time savings]", " — [what you did, how you did it]."],
   ],
+
+  // ── EMPLOYER 3 ─────────────────────────────────────────────────────────────
   cake: [
-    ["$300M annually — 3x monthly revenue increase"," — relaunched company's first in-house payments platform, replacing a legacy provider that could not scale."],
-    ["$150K recovered in 12 months"," — built 0-to-1 mobile-first merchant portal with payment processing dashboard and fraud recovery tooling for 3,000+ users."],
+    ["[Metric: e.g. 3x monthly revenue increase]", " — [what you did, how you did it]."],
+    ["[Metric: e.g. $150K recovered in 12 months]", " — [what you did, how you did it]."],
   ],
+
+  // ── EMPLOYER 4 ─────────────────────────────────────────────────────────────
   rocketLawyer: [
-    ["Call-to-triage time cut 30%"," — shipped internal tooling dashboard for 200 CS agents, achieving 100% annual customer service north star KPI."],
-    ["Payout times cut from 90 days to under 24 hours"," — redesigned attorney onboarding platform working with external attorneys, in-house legal, and design to optimize user journeys."],
+    ["[Metric: e.g. Call-to-triage time cut 30%]", " — [what you did, how you did it]."],
+    ["[Metric: e.g. Payout times cut from 90 days to under 24 hours]", " — [what you did, how you did it]."],
   ],
+
+  // ── EMPLOYER 5 ─────────────────────────────────────────────────────────────
   slidepay: [
-    ["iOS/Android mobile payment apps built from the ground up"," — including custom hardware integration."],
-    ["Disputes reduced 90%"," — instituted formal PM processes (design sprints, customer feedback cycles, agile deployment) and built internal Fraud Dashboard."],
+    ["[Outcome: e.g. iOS/Android apps built from the ground up]", " — [what you did, how you did it]."],
+    ["[Metric: e.g. Disputes reduced 90%]", " — [what you did, how you did it]."],
   ],
+
+  // ── PERSONAL / SIDE PROJECTS (optional) ────────────────────────────────────
   aiDev: {
-    website: [["Personal Website (adamrouman.com)"," — launched 0-to-1 with Claude Code and Claude Design; configured hosting and analytics with Cloudflare."]],
-    handyman: [["My AI Handyman (In Development)"," — agentic SaaS for service trades: missed call triage, scheduling, site info. Stack: Vapi, Zapier, Google MCP."]],
-    hyrox: [["My Hyrox Trainer (In Development)"," — agentic workout and ecommerce platform: personalized 12-week plan generator, gear recommendations with affiliate marketing. Stack: Next.js, Puppeteer REST APIs."]],
+    website: [["[Project name (yourwebsite.com)]", " — [what you built, stack, outcome]."]],
+    handyman: [["[Project name (In Development)]", " — [what you're building, stack, stage]."]],
+    hyrox: [["[Project name (In Development)]", " — [what you're building, stack, stage]."]],
   },
+
+  // ── EDUCATION ──────────────────────────────────────────────────────────────
   education: [
-    "B.S., Business Administration, Marketing  |  California Polytechnic State University, San Luis Obispo",
-    "Claude Code Certification  |  Anthropic",
+    "[Degree], [Major]  |  [University], [Location]",
+    "[Certification]  |  [Issuing organization]",
   ],
 };
+
 module.exports = { V2 };

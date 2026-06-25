@@ -6,5 +6,5 @@ Cribl's framing of this role, sitting at the intersection of go-to-market strate
 
 Cribl's position as the data engine for IT and Security, trusted by half of the Fortune 100, and the Pipeline Generation Systems mandate, turning promising AI ideas into measurable business pipeline outcomes, is a high-impact internal product role with direct revenue visibility. I would enjoy a conversation about which pipeline stage or GTM system area this role would own first and where the biggest lead management or attribution gaps are today.
 
-Sincerely, Adam Rouman
-arouman@gmail.com | (951) 733-2310
+Sincerely, [Your Name]
+[your.email@example.com] | [your phone]
