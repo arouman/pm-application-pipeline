@@ -59,7 +59,7 @@ You do four things: (1) tailor the right master resume, (2) write a cover letter
 
 The resume content is **verbatim from `$REPO/scripts/verbatim2.js`** — you reorder indices, you do NOT rewrite bullets. Follow the BULLET ORDERING STRATEGY below.
 
-Cover letter hard rules: **NO em dashes** anywhere, tone warm + excited + formal, paraphrase JD (never echo it), open with a specific ownable hook from Adam's real work history (never "I'm excited to apply"). Read 2-3 letters in `cover-letter-examples/` to match voice before writing p1/p2/p3.
+Cover letter hard rules: **NO em dashes** anywhere, tone warm + excited + formal, paraphrase JD (never echo it), open with a specific ownable hook from the applicant's real work history (never "I'm excited to apply"). Read 2-3 letters in `cover-letter-examples/` to match voice before writing p1/p2/p3.
 
 ```json
 {
@@ -72,8 +72,8 @@ Cover letter hard rules: **NO em dashes** anywhere, tone warm + excited + formal
   "competencyText": "Domain A  |  Domain B  |  AI-Powered Platform Products  |  Enterprise SaaS  |  Cross-functional Delivery  |  Data-Driven Product Development",
   "atBulletIdxs": [4, 5, 0, 2, 3, 1, 6, 7],
   "ehBulletIdxs": [0, 2, 1],
-  "tools": "Claude  |  Claude Code (Certified)  |  Cursor  |  Codex  |  Rovo CLI  |  AWS AI/ML  |  Salesforce  |  Heap  |  SQL",
-  "p1": "Opening hook — specific to Adam's real work, tied to this company and this moment. Never generic.",
+  "tools": "Claude  |  Claude Code (Certified)  |  Cursor  |  [role-specific tools from TOOLS STRING below]",
+  "p1": "Opening hook — specific to the applicant's real work, tied to this company and this moment. Never generic.",
   "p2": "Supporting credentials paragraph — verified metrics from verbatim2.js, specific to role domain.",
   "p3": "Closing — why this company/role specifically, call to action. Paraphrased, never mirroring JD."
 }
@@ -92,24 +92,24 @@ Cover letter hard rules: **NO em dashes** anywhere, tone warm + excited + formal
 | DevOps / CI/CD / Developer Tools | [0, 4, ...] |
 | Data Products | [3, 5, ...] |
 
-For eHealth: Healthcare/Clinical → [0, ...]; Pipeline/Conversion → [1, ...]; Operational Tooling → [2, ...]
+For employer2 bullets: map role domain to the indices that best match (e.g. Healthcare/Clinical → [0, ...]; Pipeline/Conversion → [1, ...]; Operational Tooling → [2, ...])
 
-**TOOLS STRING** — always start with `"Claude  |  Claude Code (Certified)  |  Cursor  |  Codex  |  Rovo CLI  |  "` then append role-specific tools:
+**TOOLS STRING** — start with your AI tools, then append role-specific tools from `competencies.md`. Examples by domain:
 - Healthcare: `AWS AI/ML  |  AWS Connect  |  Twilio  |  Salesforce  |  Heap  |  SQL`
 - Payments/Fintech: `AWS AI/ML  |  Salesforce  |  REST APIs  |  Stripe  |  SQL  |  Heap`
-- Developer Platform: `Bitbucket  |  CI/CD  |  AWS AI/ML  |  REST APIs  |  SQL`
+- Developer Platform: `CI/CD  |  AWS AI/ML  |  REST APIs  |  SQL`
 - AI/LLM: `LLM Evaluation  |  Prompt Engineering  |  LangChain  |  AWS AI/ML  |  Python  |  SQL`
 - General: `AWS AI/ML  |  Salesforce  |  REST APIs  |  Heap  |  Mixpanel  |  SQL`
 
-**COVER LETTER OPENING HOOKS by domain:**
-- AI/Agentic: "I built a production AI agent using Rovo CLI that synthesized 200+ enterprise discovery calls..."
-- FedRAMP/Compliance: "I advanced FedRAMP Moderate from 10% to 100% against 325 controls in eight months..."
-- Payments/Billing: "At CAKE I scaled the first in-house payments platform to $300M annually..."
-- Growth/PLG: "I increased Jira Work Management activation 25% through personalized multivariate testing..."
-- Healthcare AI: "At eHealth I designed and launched an AI-powered voice automation product...responsible for a 10% enrollment lift in 2020."
-- Enterprise SaaS: "I designed the platform architecture that unblocked four product teams in 30 days vs. 18 months..."
-- Developer Tools/CI/CD: "Five years owning Bitbucket at Atlassian, a CI/CD and SCM platform serving 1M+ enterprise seats..."
-- 0-to-1/Startup: "At SlidePay, a Y Combinator W12 company, I built mobile payment infrastructure from zero to acquisition..."
+**COVER LETTER OPENING HOOKS by domain** — draw from verified metrics in `projects.md`:
+- AI/Agentic: lead with a production AI agent or AI product you shipped and its measurable outcome
+- Compliance/GRC: lead with a specific compliance milestone (controls %, timeline, scope)
+- Payments/Billing: lead with a revenue or scale metric from your payments work
+- Growth/PLG: lead with an activation or conversion metric from experimentation work
+- Healthcare AI: lead with a clinical or enrollment outcome from an AI product
+- Enterprise SaaS: lead with a platform architecture win and its adoption impact
+- Developer Tools: lead with developer platform ownership and scale metric
+- 0-to-1/Startup: lead with a founding moment — built from zero to a specific milestone
 
 # Build command
 
@@ -119,7 +119,7 @@ Write `build-args.json` to /tmp, then:
 node $REPO/scripts/build-pair.js /tmp/<slug>_build_args.json
 ```
 
-Output folder = `outputDir` from the JSON. The script writes 4 files: `Adam_Rouman_Resume_<Title-Slug>_<Co>.docx`, `.pdf`, `Adam_Rouman_Cover_Letter_<Title-Slug>_<Co>.docx`, `.pdf`.
+Output folder = `outputDir` from the JSON. The script writes 4 files: `<Name>_Resume_<Title-Slug>_<Co>.docx`, `.pdf`, `<Name>_Cover_Letter_<Title-Slug>_<Co>.docx`, `.pdf` (name comes from `private/applicant-profile.json`).
 Write `<folderName>_application.md` and `<folderName>_field-map.json` into that same folder.
 
 # application.md (write to day folder as `<folderName>_application.md`)
@@ -168,7 +168,7 @@ Pull contact facts from `private/applicant-profile.json` in the repo (FORM-FILL 
 { "ok": true, "company": "<Company>", "title": "<Title>",
   "folder": "$REPO/applied/<date>/<slug>",
   "coverage": <NN>, "atBulletIdxs": [<idxs>],
-  "files": ["Adam_Rouman_Resume_...docx","...pdf","Adam_Rouman_Cover_Letter_...docx","...pdf","<folderName>_application.md","<folderName>_field-map.json"],
+  "files": ["<Name>_Resume_...docx","...pdf","<Name>_Cover_Letter_...docx","...pdf","<folderName>_application.md","<folderName>_field-map.json"],
   "gaps": ["<absent must-have>", "…"], "pendingKeywords": ["<term>", "…"],
   "trap": "none | FLAG: <quote>",
   "checklist": ["<dropdown/decision to handle>", "…"],

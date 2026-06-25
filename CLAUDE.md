@@ -86,7 +86,7 @@ The batch supervisor writes `.paused-until` (Unix timestamp) and exits 75 when r
 - `⚠️` flags in `projects.md` mark overclaim guardrails — carry them into every artifact
 - Cover letters paraphrase JD language; never mirror it verbatim
 
-## Working with Adam
+## Working norms
 
 - Don't touch `private/`, `applied/`, or `master-resumes/*.docx` — gitignored, personal
 - Queue skip/reset commands: `python3 scripts/lib/queue.py $QUEUE status <id> skip`

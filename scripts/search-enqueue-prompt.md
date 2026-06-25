@@ -62,7 +62,7 @@ PASS:
 - Location: remote-eligible (isRemote=true, or location contains "Remote", or US role with remote option in description)
 - Record ID not already in queue
 - Company is a funded startup or established tech company (not agency/staffing)
-- fitScore ≥ 70 based on Adam's background: enterprise SaaS, AI/agentic products, B2B platform, growth/PLG, billing/payments, healthcare AI
+- fitScore ≥ 70 based on the candidate's background — update this line to match your own fit dimensions (e.g. enterprise SaaS, AI/agentic products, B2B platform, growth/PLG, billing/payments, healthcare AI)
 
 SKIP (any one disqualifies):
 - Title contains: Director, VP, Head of, CPO, Group PM, Lead PM, Junior, Associate, Intern
