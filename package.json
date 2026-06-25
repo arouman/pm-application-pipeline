@@ -8,16 +8,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rob-stout/jobpipeline-starter.git"
+    "url": "git+https://github.com/arouman/pm-application-pipeline.git"
   },
-  "keywords": [],
+  "keywords": ["job-search", "ai", "claude", "product-management", "automation", "resume"],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/rob-stout/jobpipeline-starter/issues"
+    "url": "https://github.com/arouman/pm-application-pipeline/issues"
   },
-  "homepage": "https://github.com/rob-stout/jobpipeline-starter#readme",
+  "homepage": "https://github.com/arouman/pm-application-pipeline#readme",
   "dependencies": {
     "docx": "^9.7.1"
   }
