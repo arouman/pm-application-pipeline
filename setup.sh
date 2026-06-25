@@ -17,8 +17,6 @@ set -uo pipefail
 # Resolve repo root portably (works regardless of cwd or symlinks)
 # ---------------------------------------------------------------------------
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# setup.sh lives in ROOT/starter-kit/ — the repo root is one level up.
-ROOT="$(cd "${ROOT}/.." && pwd)"
 
 # ---------------------------------------------------------------------------
 # Color / output helpers
