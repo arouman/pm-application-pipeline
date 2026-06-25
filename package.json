@@ -1,0 +1,24 @@
+{
+  "name": "applications",
+  "version": "1.0.0",
+  "description": "An AI-assisted pipeline that produces tailored, fully-packaged job applications — resume, cover letter, and ATS-safe PDFs — ready for you to review and submit. Claude Code does the building; you always click submit. Nothing is ever auto-submitted.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rob-stout/jobpipeline-starter.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/rob-stout/jobpipeline-starter/issues"
+  },
+  "homepage": "https://github.com/rob-stout/jobpipeline-starter#readme",
+  "dependencies": {
+    "docx": "^9.7.1"
+  }
+}

@@ -41,85 +41,96 @@ You do four things: (1) tailor the right master resume, (2) write a cover letter
 - `~/.claude/skills/recruiter/references/cover-letters.md` — the 4-part letter format + the paraphrase-don't-mirror rule.
 - `keyword-bank/keyword-bank.json` in the repo — `confirmed` terms (with evidence) are usable; `rejected` terms are forbidden; `pending` terms are NOT yet usable.
 
-**Step 3 — Read the master's exact text** so your swaps match real run text:
-`pandoc $REPO/master-resumes/<NAME_SLUG>_Resume_<PM|Design>_Master.docx -t plain`
-The headline you will swap is exactly `Senior Product Manager` (PM master) or `Senior Product Designer` (Design master).
+**Step 3 — Score coverage.** List the JD's must-haves. Bucket each: present in V2 / domain-adjacent / **absent**. Compute coverage %. Absent must-haves are **gaps** (Step 8), never inserted. Coverage = (present + domain-adjacent) ÷ total must-haves.
 
-**Step 4 — Extract must-haves & score coverage.** List the JD's must-haves. Bucket each: present / synonym-swap / bank-confirmed / **absent**. Compute coverage %. Absent must-haves are **gaps** (Step 9), never inserted.
+**Step 4 — Write `build-args.json`** (see schema). This drives both the resume and cover letter. Bullets come from `$REPO/scripts/verbatim2.js` — choose **indices only**, never write new bullet text.
 
-**Step 5 — Write `swaps.json`** (see schema). Always include the title swap. Add only synonym swaps that map a JD term to a TRUE competency, matching exact master run text.
+**Step 5 — Build.** Run `node $REPO/scripts/build-pair.js /tmp/<slug>_build_args.json`. It writes .docx + PDF for both resume and cover letter into `outputDir`.
 
-**Step 6 — Write `cover_fields.json`** (see schema) — the 4-part letter in the applicant's voice, paraphrasing (never mirroring) the JD.
+**Step 6 — Confirm output.** Check the folder has 4 files (2 .docx + 2 .pdf). If the build fails, fix the JSON and retry.
 
-**Step 7 — Build.** Run `build-application.sh` (see command). It writes the docx + cover letter + tagged PDFs + a stub `application.md`.
+**Step 7 — Write `application.md` and `field-map.json`** into the day folder (`outputDir`), named `<folderName>_application.md` and `<folderName>_field-map.json` (where `folderName` is the value from the assignment JSON).
 
-**Step 8 — Verify swap matches.** `tailor-resume.py` prints `x{n}` per swap. If a required swap matched 0 times, fix the `old` string to match real run text and rebuild. If the title swap matched >1 (rare), make it more specific. Confirm the folder has 4 files (2 docx + 2 pdf).
+**Step 8 — Record pending keywords** to `$REPO/applied/_queue/pending/<slug>__<jobId>.json` for absent-but-needed terms (do NOT edit keyword-bank.json directly).
 
-**Step 9 — Overwrite `application.md`** with the full format (below), including the gaps and a checklist. Write any absent-but-needed keywords to `$REPO/applied/_queue/pending/<slug>__<jobId>.json` (the orchestrator merges these into the keyword bank — do NOT edit keyword-bank.json yourself; concurrent writers would corrupt it).
+**Step 9 — Return** the JSON payload (schema below) as your FINAL message — nothing else.
 
-**Step 10 — Emit `field-map.json`** into the company folder (schema below) for the browser autofill.
+# build-args.json
 
-**Step 11 — Return** the JSON payload (schema below) as your FINAL message — nothing else.
+The resume content is **verbatim from `$REPO/scripts/verbatim2.js`** — you reorder indices, you do NOT rewrite bullets. Follow the BULLET ORDERING STRATEGY below.
 
-# swaps.json
-
-```json
-{ "replacements": [
-  { "old": "Senior Product Manager", "new": "Senior Product Manager, Growth", "required": true },
-  { "old": "<exact master phrase>", "new": "<JD-aligned true equivalent>", "required": false }
-] }
-```
-- `old` must be the EXACT run text from the master (what pandoc shows), case-sensitive. `&`, `<`, `>` are auto-escaped by the script — write them literally.
-- The title `new` = the JD's exact posted title.
-- Keep swaps minimal and surgical (standing instruction: keyword swaps + light edits, not rewrites). Typically 3–8 swaps.
-
-# cover_fields.json
-
-Follow `cover-letters.md`. **FIRST read 2–3 of the applicant's real letters in `cover-letter-examples/` in the repo (domain-matched) and mirror their voice** — concrete story/analogy, punchy parallel declaratives, semicolon clinchers, receipts, real personality. Do NOT write from the abstract description alone; that is what makes letters drift into generic-AI voice. Hard rules: **one page**, **≤2 em-dashes in the whole letter** (bold lead-ins take a colon, not an em-dash), tone **warm + excited + formal**, risks named directly, no marketing-speak, paraphrase the JD (never echo it). Avoid the AI tells listed in `cover-letters.md`. Keys (all required; `risk_3` may be ""):
+Cover letter hard rules: **NO em dashes** anywhere, tone warm + excited + formal, paraphrase JD (never echo it), open with a specific ownable hook from Adam's real work history (never "I'm excited to apply"). Read 2-3 letters in `cover-letter-examples/` to match voice before writing p1/p2/p3.
 
 ```json
 {
-  "date": "AUTO — leave as \"\"; the build script computes the dated weekday from --date",
-  "salutation": "Hiring Team",
-  "hook": "Opening paragraph — a genuine, ownable reason the applicant is writing, tied to this company + this moment.",
-  "risk_1": "…", "risk_2": "…", "risk_3": "",
-  "map_1_lead": "Bold lead-in (no trailing period)", "map_1_body": " — normal-weight body mapping the applicant's real evidence to a role priority.",
-  "map_2_lead": "…", "map_2_body": "…",
-  "map_3_lead": "…", "map_3_body": "…",
-  "why": "Why this role, why now — paraphrased, personal, never mirroring the JD."
+  "company": "Valon",
+  "title": "Senior Product Manager",
+  "pmTitle": "Senior Product Manager",
+  "date": "2026-06-24",
+  "outputDir": "$REPO/applied/<date>",
+  "summary": "3-5 sentences tailored to this role. Specific, ownable, no filler phrases.",
+  "competencyText": "Domain A  |  Domain B  |  AI-Powered Platform Products  |  Enterprise SaaS  |  Cross-functional Delivery  |  Data-Driven Product Development",
+  "atBulletIdxs": [4, 5, 0, 2, 3, 1, 6, 7],
+  "ehBulletIdxs": [0, 2, 1],
+  "tools": "Claude  |  Claude Code (Certified)  |  Cursor  |  Codex  |  Rovo CLI  |  AWS AI/ML  |  Salesforce  |  Heap  |  SQL",
+  "p1": "Opening hook — specific to Adam's real work, tied to this company and this moment. Never generic.",
+  "p2": "Supporting credentials paragraph — verified metrics from verbatim2.js, specific to role domain.",
+  "p3": "Closing — why this company/role specifically, call to action. Paraphrased, never mirroring JD."
 }
 ```
-- For a PM role where the title isn't on the applicant's history, use the title-gap reframe from `cover-letters.md`/SKILL.md ("'Product Manager' isn't on my title history — but the work is…").
-- `map_*_lead` renders bold; keep each lead a short phrase. `map_*_body` should start with the separating space/em-dash as shown.
-- **NEVER hand-type the date or its weekday.** `build-application.sh --date <YYYY-MM-DD>` computes the full "Weekday, Month D, YYYY" string deterministically and fills `{{DATE}}`; the `date` value you write is ignored. (LLMs get day-of-week math wrong, and a weekday that doesn't match the calendar date is an instant recruiter red flag.)
+
+**BULLET ORDERING STRATEGY** — lead with the domain-matching indices:
+
+| Role Domain | Lead atBulletIdxs |
+|---|---|
+| AI / Agentic / LLM | [5, 3, ...] |
+| FedRAMP / Compliance / GRC | [4, 3, ...] |
+| Payments / Billing / Fintech | [1, ...] |
+| Growth / PLG / Activation | [7, 6, ...] |
+| Platform Architecture | [2, 0, ...] |
+| Enterprise Scale | [0, 4, ...] |
+| DevOps / CI/CD / Developer Tools | [0, 4, ...] |
+| Data Products | [3, 5, ...] |
+
+For eHealth: Healthcare/Clinical → [0, ...]; Pipeline/Conversion → [1, ...]; Operational Tooling → [2, ...]
+
+**TOOLS STRING** — always start with `"Claude  |  Claude Code (Certified)  |  Cursor  |  Codex  |  Rovo CLI  |  "` then append role-specific tools:
+- Healthcare: `AWS AI/ML  |  AWS Connect  |  Twilio  |  Salesforce  |  Heap  |  SQL`
+- Payments/Fintech: `AWS AI/ML  |  Salesforce  |  REST APIs  |  Stripe  |  SQL  |  Heap`
+- Developer Platform: `Bitbucket  |  CI/CD  |  AWS AI/ML  |  REST APIs  |  SQL`
+- AI/LLM: `LLM Evaluation  |  Prompt Engineering  |  LangChain  |  AWS AI/ML  |  Python  |  SQL`
+- General: `AWS AI/ML  |  Salesforce  |  REST APIs  |  Heap  |  Mixpanel  |  SQL`
+
+**COVER LETTER OPENING HOOKS by domain:**
+- AI/Agentic: "I built a production AI agent using Rovo CLI that synthesized 200+ enterprise discovery calls..."
+- FedRAMP/Compliance: "I advanced FedRAMP Moderate from 10% to 100% against 325 controls in eight months..."
+- Payments/Billing: "At CAKE I scaled the first in-house payments platform to $300M annually..."
+- Growth/PLG: "I increased Jira Work Management activation 25% through personalized multivariate testing..."
+- Healthcare AI: "At eHealth I designed and launched an AI-powered voice automation product...responsible for a 10% enrollment lift in 2020."
+- Enterprise SaaS: "I designed the platform architecture that unblocked four product teams in 30 days vs. 18 months..."
+- Developer Tools/CI/CD: "Five years owning Bitbucket at Atlassian, a CI/CD and SCM platform serving 1M+ enterprise seats..."
+- 0-to-1/Startup: "At SlidePay, a Y Combinator W12 company, I built mobile payment infrastructure from zero to acquisition..."
 
 # Build command
 
-Write `swaps.json` and `cover_fields.json` to a temp dir, then:
+Write `build-args.json` to /tmp, then:
 
 ```bash
-bash $REPO/scripts/build-application.sh \
-  --company "<Company>" --title "<Exact JD Title>" \
-  --master <PM|Design> \
-  --swaps  /tmp/<slug>_swaps.json \
-  --fields /tmp/<slug>_cover_fields.json \
-  --date <YYYY-MM-DD> --jd-url "<jdUrl>" --coverage <NN> --role-type "<Domain N>" \
-  --folder-name "<folderName from assignment>"
+node $REPO/scripts/build-pair.js /tmp/<slug>_build_args.json
 ```
-Output folder: `$REPO/applied/<date>/<folderName>/`. ALWAYS pass `--folder-name` using the
-assignment's `folderName` (it prevents collisions when a company has >1 role today).
-Write `application.md` and `field-map.json` into that exact folder.
 
-# application.md (overwrite the stub with this)
+Output folder = `outputDir` from the JSON. The script writes 4 files: `Adam_Rouman_Resume_<Title-Slug>_<Co>.docx`, `.pdf`, `Adam_Rouman_Cover_Letter_<Title-Slug>_<Co>.docx`, `.pdf`.
+Write `<folderName>_application.md` and `<folderName>_field-map.json` into that same folder.
+
+# application.md (write to day folder as `<folderName>_application.md`)
 
 ```markdown
 # <Title> — <Company>
 
 - **JD URL:** <jdUrl>
 - **Role type:** <PM | Design | Ambiguous>  (<Domain N>)
-- **Master used:** <PM | Design>
 - **Coverage:** <NN>%
-- **Swap list:** <jd term> → <resume term>; …
+- **Bullet order (AT):** [<atBulletIdxs>] — lead: <why these indices first>
 - **Gaps (<90% only):** <absent must-haves + one-line note each>, or "none"
 - **Traps detected:** <quote or "none">
 - **Status:** READY — pending review + submit.
@@ -132,7 +143,7 @@ Write `application.md` and `field-map.json` into that exact folder.
 - [ ] Review, then submit
 ```
 
-# field-map.json (write to the company folder)
+# field-map.json (write to the day folder as `<folderName>_field-map.json`)
 
 Pull contact facts from `private/applicant-profile.json` in the repo (FORM-FILL ONLY — never put EEO data here or in resume/letter). Location = the job's city; default San Francisco, CA (or NYC) if remote/unspecified.
 
@@ -145,7 +156,7 @@ Pull contact facts from `private/applicant-profile.json` in the repo (FORM-FILL 
     "website": "<from applicant-profile.json>" },
   "resumePdf": "<abs path to resume .pdf>",
   "coverLetterPdf": "<abs path to cover letter .pdf>",
-  "coverLetterText": "<full letter as plain text, assembled from cover_fields; START at the salutation — do NOT prepend a date line (a web textarea needs no letterhead date, and a hand-typed weekday risks being wrong)>",
+  "coverLetterText": "<plain text assembled from p1/p2/p3; START with 'Re: <title> at <company>' — do NOT prepend date or header>",
   "essays": { "whyCompany": "<personal claim per /recruiter — NEVER mirror the JD>" },
   "notes": "<e.g. legal-name caution, comp question present, etc.>"
 }
@@ -154,9 +165,10 @@ Pull contact facts from `private/applicant-profile.json` in the repo (FORM-FILL 
 # Return payload (your FINAL message — ONLY this JSON, no prose)
 
 ```json
-{ "ok": true, "company": "<Company>", "title": "<Title>", "master": "<PM|Design>",
+{ "ok": true, "company": "<Company>", "title": "<Title>",
   "folder": "$REPO/applied/<date>/<slug>",
-  "coverage": <NN>, "files": ["resume.docx","resume.pdf","cover.docx","cover.pdf","application.md","field-map.json"],
+  "coverage": <NN>, "atBulletIdxs": [<idxs>],
+  "files": ["Adam_Rouman_Resume_...docx","...pdf","Adam_Rouman_Cover_Letter_...docx","...pdf","<folderName>_application.md","<folderName>_field-map.json"],
   "gaps": ["<absent must-have>", "…"], "pendingKeywords": ["<term>", "…"],
   "trap": "none | FLAG: <quote>",
   "checklist": ["<dropdown/decision to handle>", "…"],

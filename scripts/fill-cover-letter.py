@@ -8,20 +8,15 @@ template. Warns (exit 2) if any {{...}} token remains unfilled in the output.
 Usage:
   fill-cover-letter.py --template TOKENS.docx --out OUT.docx --fields FIELDS.json
 
-FIELDS.json keys (all required unless marked optional):
-  date          — e.g. "Wednesday, June 11, 2026"
-  salutation    — e.g. "Hiring Team" (inserted after "Dear ", before ",")
-  hook          — full hook paragraph text (plain text, no markup)
-  risk_1        — first risk paragraph
-  risk_2        — second risk paragraph
-  risk_3        — third risk paragraph (can be empty string to leave blank)
-  map_1_lead    — bold lead-in for mapping paragraph 1 (no trailing period/space)
-  map_1_body    — normal-weight body for mapping paragraph 1
-  map_2_lead    — bold lead-in for mapping paragraph 2
-  map_2_body    — normal-weight body for mapping paragraph 2
-  map_3_lead    — bold lead-in for mapping paragraph 3
-  map_3_body    — normal-weight body for mapping paragraph 3
-  why           — "Why This Role, Why Now" paragraph
+FIELDS.json keys (all required):
+  date          — e.g. "Wednesday, June 11, 2026" (computed from --date, LLM value ignored)
+  re_line       — e.g. "Senior Product Manager at Valon" (follows literal "Re: " in template)
+  hook          — opening paragraph (plain text, no markup)
+  map_1_lead    — bold lead-in for credential paragraph 1 (no trailing period/space)
+  map_1_body    — normal-weight body for credential paragraph 1
+  map_2_lead    — bold lead-in for credential paragraph 2
+  map_2_body    — normal-weight body for credential paragraph 2
+  why           — closing paragraph ("why this role, why now")
 
 Smart-quote handling: straight apostrophes/quotes in field values are converted
 to proper typographic entities before XML insertion.
@@ -45,17 +40,12 @@ DOCX_SCRIPTS = str(Path.home() / ".claude" / "skills" / "docx" / "scripts" / "of
 # Map FIELDS.json key → template token (token is uppercase of key, with _ preserved)
 TOKEN_FIELD_MAP = {
     "DATE":       "date",
-    "SALUTATION": "salutation",
+    "RE_LINE":    "re_line",
     "HOOK":       "hook",
-    "RISK_1":     "risk_1",
-    "RISK_2":     "risk_2",
-    "RISK_3":     "risk_3",
     "MAP_1_LEAD": "map_1_lead",
     "MAP_1_BODY": "map_1_body",
     "MAP_2_LEAD": "map_2_lead",
     "MAP_2_BODY": "map_2_body",
-    "MAP_3_LEAD": "map_3_lead",
-    "MAP_3_BODY": "map_3_body",
     "WHY":        "why",
 }
 
