@@ -11,8 +11,12 @@ An AI-assisted job application pipeline that runs entirely on your Mac. You feed
 Install these before running `setup.sh`.
 
 **Claude Code** (required — this is the AI engine)
+
+Requires a **Claude Pro or Max subscription** (recommended) or an Anthropic API key. See the cost table in the README.
+
 ```bash
 npm install -g @anthropic/claude-code
+claude auth login   # log in with your claude.ai account
 ```
 
 **Python 3.10+** (required — the docx tooling uses 3.10+ syntax; a system Python 3.9 will fail at the resume-packing step)

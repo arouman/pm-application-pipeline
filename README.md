@@ -2,7 +2,13 @@
 
 An AI-assisted job application pipeline. Searches Ashby and Greenhouse nightly, qualifies roles against your background, and builds a tailored resume + cover letter package for each passing role — ready for you to review and submit.
 
-Built on Claude Code + Haiku API. ~$3–5/day to find 25 roles and produce 25 complete application packages.
+Built on Claude Code. All pipeline calls run under your authenticated `claude` session — no separate API billing if you're on a subscription.
+
+| Plan | Cost | Notes |
+|---|---|---|
+| Claude Pro | ~$20/mo | Works; more rate-limit pauses — nightly run may take several hours |
+| Claude Max | ~$100/mo | Recommended; fewer pauses, ~90-min nightly run |
+| Anthropic API key | ~$3–5/day | No subscription needed; billed per token at Haiku rates |
 
 **You always click submit. Nothing is ever auto-submitted.**
 
